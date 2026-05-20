@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ManuReco Pro - マニュアル保管＆Notion連携システム</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&family=Noto+Sans+JP:wght=300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .animate-pulse-red { animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes ripple { 0% { transform: scale(0); opacity: 0.5; } 100% { transform: scale(4); opacity: 0; } }
+    .click-ripple { position: absolute; width: 20px; height: 20px; background: rgba(59, 130, 246, 0.6); border-radius: 50%; pointer-events: none; animation: ripple 0.6s ease-out; transform-origin: center; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- ヘッダー -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-3 shadow-sm">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-brand-600 text-white p-2 rounded-xl shadow-md shadow-brand-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
+            ManuReco Pro <span class="text-[10px] bg-brand-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider">Library Mode</span>
+          </h1>
+          <p class="text-xs text-slate-500">マニュアル自動生成・フォルダ保管・Notion連携システム</p>
+        </div>
+      </div>
+      
+      <!-- ナビゲーションタブ -->
+      <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <button id="nav-workspace-btn" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5">
+          📝 ワークスペース (作成)
+        </button>
+        <button id="nav-library-btn" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
+          📁 保管ライブラリ (<span id="library-count-badge">0</span>)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 環境警告バナー (iframe内実行時に動的表示) -->
+  <div id="sandbox-banner" class="hidden bg-amber-50 border-b border-amber-200 px-6 py-2 text-amber-800 text-[11px] flex items-center justify-between transition-all">
+    <div class="flex items-center gap-2"><span>⚠️</span><span>埋め込み環境のため画面直接録画に制限があります。<strong>「動画ファイル読込」</strong>または<strong>「デモ体験」</strong>をご利用ください。</span></div>
+    <button onclick="document.getElementById('sandbox-banner').remove()" class="text-amber-500 hover:text-amber-800 font-bold px-2 text-sm">&times;</button>
+  </div>
+
+  <!-- メインレイアウトコンテナ -->
+  <div class="flex-1 max-w-7xl w-full mx-auto flex flex-col lg:flex-row gap-6 p-4 md:p-6">
+    
+    <!-- ========================================== -->
+    <!-- 1. ワークスペース画面 (デフォルト表示) -->
+    <!-- ========================================== -->
+    <div id="view-workspace" class="w-full flex flex-col lg:flex-row gap-6 transition-all">
+      
+      <!-- 左側：キャプチャ＆ビデオエリア -->
+      <div class="lg:w-7/12 flex flex-col gap-4">
+        
+        <!-- 録画ステータス / タイマー -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div id="status-indicator" class="w-3.5 h-3.5 rounded-full bg-slate-300"></div>
+            <div>
+              <span id="status-text" class="font-medium text-slate-700 text-sm">準備完了</span>
+              <p id="audio-status" class="text-xs text-slate-400">動画を設定するか、収録を開始してください</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span id="timer-display" class="font-mono text-2xl font-semibold text-slate-900">00:00</span>
+            <p id="timer-label" class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">ElapsedTime</p>
+          </div>
+        </div>
+
+        <!-- ビデオエリア -->
+        <div id="video-area" class="bg-slate-950 rounded-2xl overflow-hidden aspect-video relative border border-slate-800 shadow-md flex flex-col items-center justify-center">
+          <video id="video-preview" class="w-full h-full object-contain hidden" controls playsinline></video>
+          
+          <div id="video-placeholder" class="text-center p-6 flex flex-col items-center w-full h-full justify-center">
+            <div class="w-12 h-12 bg-slate-900 text-slate-400 rounded-full flex items-center justify-center mb-3 border border-slate-800">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0L8 8m-4-4v12" /></svg>
+            </div>
+            <h3 class="text-white font-medium text-sm">動画ソースの設定</h3>
+            <p class="text-slate-400 text-xs mt-1 max-w-xs mb-4 leading-relaxed text-center">
+              お手持ちの作業録画ビデオをここにドラッグ＆ドロップするか、下のボタンを選択してください。
+            </p>
+            <div class="flex gap-2">
+              <button id="import-trigger-btn" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-sm">
+                動画をインポート
+              </button>
+              <button id="demo-trigger-btn" class="bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold px-4 py-2 rounded-xl border border-slate-800">
+                シミュレータデモ
+              </button>
+            </div>
+            <input type="file" id="video-file-input" accept="video/*" class="hidden">
+          </div>
+
+          <!-- 擬似デモシミュレータ画面 -->
+          <div id="demo-simulator" class="absolute inset-0 bg-slate-900 text-slate-100 hidden flex flex-col p-3 font-sans select-none overflow-hidden">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+              <div class="flex items-center gap-1.5 text-[10px] font-bold"><div class="w-2 h-2 bg-emerald-500 rounded-full"></div><span>CloudAdmin Dashboard v4.2</span></div>
+            </div>
+            <div class="flex-1 grid grid-cols-4 gap-2 text-[10px]">
+              <div class="col-span-1 border-r border-slate-800 pr-1 space-y-1">
+                <div id="demo-side-home" class="p-1 bg-slate-800 text-white rounded">📊 概要</div>
+                <div id="demo-side-users" class="p-1 text-slate-500">👥 ユーザー</div>
+                <div id="demo-side-settings" class="p-1 text-slate-500">⚙️ 環境設定</div>
+              </div>
+              <div class="col-span-3 flex flex-col gap-2">
+                <div class="bg-slate-800/50 p-2 rounded border border-slate-800">
+                  <h4 id="demo-content-title" class="font-bold text-slate-300">システム概要レポート</h4>
+                  <p id="demo-content-desc" class="text-[9px] text-slate-400">アクティブセッション数の遷移グラフ</p>
+                </div>
+                <div id="demo-action-btn" class="bg-brand-600 p-1.5 rounded text-center text-white font-bold text-[9px]">💾 設定を即座に適用保存</div>
+              </div>
+            </div>
+            <div id="demo-dialog" class="absolute inset-x-8 top-1/4 bg-slate-950 border border-slate-800 p-3 rounded-lg text-center hidden z-30">
+              <h5 class="text-[10px] font-bold text-white mb-2">⚠️ 変更を適用して再起動しますか？</h5>
+              <div class="flex justify-center gap-2"><button id="demo-dialog-cancel" class="bg-slate-800 px-2 py-0.5 rounded text-[9px]">拒否</button><button id="demo-dialog-ok" class="bg-brand-600 px-2 py-0.5 rounded text-[9px] font-bold">続行</button></div>
+            </div>
+            <div class="mt-1 border-t border-slate-800 pt-1 flex justify-between text-[9px] text-slate-500">
+              <span>※自動自律デモシステム稼働中</span>
+              <button id="quit-demo-btn" class="bg-red-950 text-red-200 px-1.5 rounded">デモ終了</button>
+            </div>
+            <div id="virtual-cursor" class="absolute w-3.5 h-3.5 text-white pointer-events-none transition-all duration-1000 ease-out z-50" style="top: 50%; left: 50%;"><svg class="w-full h-full transform -rotate-45" fill="currentColor" viewBox="0 0 24 24"><path d="M7 2l12 11.2-5.8.8 3.5 6-2.5 1.5-3.5-6-3.7 3.5z" /></svg></div>
+          </div>
+
+          <div id="recording-overlay" class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 opacity-0 transition-opacity pointer-events-none z-20">
+            <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse-red"></span><span id="rec-label-text">REC</span>
+          </div>
+        </div>
+
+        <!-- ワークスペース用操作ボタン -->
+        <div class="grid grid-cols-3 gap-2">
+          <button id="start-btn" class="p-2.5 bg-slate-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 col-span-1 shadow-sm">🔴 画面録画</button>
+          <button id="stop-btn" disabled class="p-2.5 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed">⏹️ 停止</button>
+          <button id="mic-toggle-btn" class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5">🎙️ マイク ON</button>
+        </div>
+
+        <!-- 保管連携エリア -->
+        <div id="save-library-banner" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3 hidden">
+          <div>
+            <h4 class="text-xs font-bold text-slate-900">✨ マニュアルの骨子が完成しました！</h4>
+            <p class="text-[11px] text-slate-500">このままアプリ内ライブラリに保管し、フォルダ管理やNotion埋め込みリンクを発行できます。</p>
+          </div>
+          <button id="open-save-modal-btn" class="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-md flex items-center justify-center gap-1">
+            📦 ライブラリに保管する
+          </button>
+        </div>
+      </div>
+
+      <!-- 右側：タイムライン＆メモエリア -->
+      <div class="lg:w-5/12 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-700 flex items-center gap-1">📌 編集タイムライン</span>
+          <button id="clear-timeline-btn" class="text-[11px] text-red-500 font-medium">クリア</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 max-h-[360px]" id="timeline-container">
+          <div id="timeline-placeholder" class="text-center py-12 text-slate-400 text-xs">タイムラインは空です。動画を動かしてメモを記録してください。</div>
+        </div>
+        <div class="border-t border-slate-200 p-3 bg-slate-50">
+          <div class="flex gap-1.5 mb-2 overflow-x-auto pb-1">
+            <button data-tag="memo" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-700 border border-brand-200 scale-105">📝 メモ</button>
+            <button data-tag="important" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">⚠️ コツ</button>
+            <button data-tag="step" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">⚙️ 手順</button>
+          </div>
+          <div class="relative">
+            <textarea id="memo-input" disabled rows="2" class="w-full border rounded-xl p-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none pr-12 bg-slate-100 cursor-not-allowed" placeholder="動画を設定すると入力できます..."></textarea>
+            <button id="add-memo-btn" disabled class="absolute bottom-2 right-2 bg-brand-600 text-white p-1.5 rounded-lg disabled:bg-slate-300"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. 保管ライブラリ画面 (タブ切り替えで表示) -->
+    <!-- ========================================== -->
+    <div id="view-library" class="w-full flex flex-col md:flex-row gap-6 transition-all hidden animate-fade-in">
+      
+      <div class="md:w-3/12 flex flex-col gap-3">
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-xs font-bold text-slate-900 tracking-wider uppercase">📂 フォルダ構造</h3>
+            <button id="add-folder-btn" class="text-brand-600 hover:text-brand-800 text-xs font-bold flex items-center gap-0.5">+ 新規</button>
+          </div>
+          <div id="folder-list-container" class="space-y-1 max-h-[250px] overflow-y-auto text-xs">
+            </div>
+        </div>
+      </div>
+
+      <div class="md:w-9/12 flex flex-col gap-4">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm min-h-[400px] flex flex-col">
+          <div class="border-b border-slate-100 pb-3 flex justify-between items-center mb-4">
+            <div>
+              <h3 id="current-folder-title" class="text-sm font-bold text-slate-800">すべてのマニュアル</h3>
+              <p class="text-xs text-slate-400">保管中の時間連動型WEBマニュアル下書き一覧</p>
+            </div>
+            <button id="export-all-library-btn" class="text-xs bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl border font-medium">全データをバックアップ</button>
+          </div>
+
+          <div id="manuals-grid-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 items-start">
+            </div>
+          
+          <div id="library-empty-placeholder" class="text-center py-24 text-slate-400 text-xs hidden flex-col items-center justify-center">
+            <span>📦 このフォルダ、またはライブラリにはまだマニュアルがありません。</span>
+            <span class="text-slate-400 text-[10px] mt-1">「ワークスペース」タブでマニュアルを作成し「ライブラリに保管」してください。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 保管設定モーダル -->
+  <div id="save-modal" class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 flex flex-col gap-4 animate-scale-in">
+      <h3 class="font-bold text-slate-900 text-sm">📦 ライブラリに保管する設定</h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">マニュアル名 / タイトル</label>
+          <input type="text" id="modal-manual-title" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="例: クラウド設定変更と再起動の手順">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">格納するフォルダの選択</label>
+          <select id="modal-manual-folder" class="w-full border rounded-xl p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 text-xs font-semibold mt-2">
+        <button id="close-save-modal-btn" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl">キャンセル</button>
+        <button id="execute-save-btn" class="bg-brand-600 text-white px-4 py-2 rounded-xl shadow-md">保管を確定する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notion共有モーダル (大幅アップデート) -->
+  <div id="share-modal" class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-900 text-base flex items-center gap-1.5">🚀 Notionに完璧にマニュアルを貼る方法</h3>
+        <button id="close-share-modal-btn" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+
+      <!-- モーダル内ナビゲーション -->
+      <div class="flex border-b border-slate-200 text-xs">
+        <button id="share-tab-copy" class="flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center">パターンA：Notionに直接ペースト（推奨・即座に可能）</button>
+        <button id="share-tab-embed" class="flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center">パターンB：Notion内に動くアプリを埋め込む</button>
+      </div>
+
+      <!-- パターンA コンテンツ -->
+      <div id="share-panel-copy" class="space-y-4 text-xs">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 leading-relaxed text-slate-600">
+          <span class="font-bold text-slate-800 text-xs block mb-1">💡 なぜ「アクセスできません」と出たの？</span>
+          現在、本アプリはあなたのブラウザ内（ローカル）だけで動いています。そのため、Notionなどの外部サイトからは直接URLを読み込むことができずエラーが表示されてしまいます。<br>
+          <strong class="text-brand-600">最も簡単で美しい解決策は、下の「Notion最適化テキスト」をコピーして、そのままNotionに貼り付ける方法です！</strong>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1 flex justify-between items-center">
+            <span>Notion専用に整形されたトグル式マニュアルテキスト</span>
+            <span class="text-[10px] text-brand-600 font-normal">Notionに貼ると自動でトグルやリストにパースされます</span>
+          </label>
+          <div class="flex flex-col gap-2">
+            <textarea id="notion-markdown-output" readonly rows="5" class="w-full border bg-slate-50 rounded-xl p-2.5 font-mono text-[10px] text-slate-600 resize-none"></textarea>
+            <button id="copy-notion-md-btn" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-colors self-end shadow-sm">
+              ✨ Notion用テキストを丸ごとコピー
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-brand-50 border border-brand-100 rounded-xl p-3 text-slate-700">
+          <span class="font-bold text-brand-900 block mb-1">📋 おすすめのNotion整理フロー：</span>
+          1. Notionに動画ファイルを直接アップロード（<code>/video</code> と入力）してブロックを配置。<br>
+          2. そのすぐ下に、上記のコピーしたテキストをそのまま <code>Ctrl + V</code>（貼り付け）。<br>
+          これだけで、トグルリストで開閉できる超絶スタイリッシュな連動マニュアルがNotion上に即座に誕生します！
+        </div>
+      </div>
+
+      <!-- パターンB コンテンツ -->
+      <div id="share-panel-embed" class="space-y-4 text-xs hidden">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 leading-relaxed text-slate-600">
+          <span class="font-bold text-slate-800 text-xs block mb-1">🔗 アプリごとNotionに埋め込んで操作したい場合</span>
+          Notionの「埋め込み」機能の中で、動画プレビューやタイムスタンプのクリックジャンプを完全に動作させたい場合、このHTMLファイルをWeb上に無料公開（デプロイ）する必要があります。
+        </div>
+
+        <div class="space-y-2 text-slate-700">
+          <span class="font-bold text-slate-900 block">🚀 1分で無料Web公開（デプロイ）してURLを発行する手順：</span>
+          <div class="pl-2 space-y-1 text-[11px] leading-relaxed list-decimal">
+            <div>1. このページの右上にある「HTMLコード」をローカルに <code>index.html</code> として保存します。</div>
+            <div>2. 無料公開サービス <a href="https://vercel.com" target="_blank" class="text-brand-600 underline font-bold">Vercel</a> や <a href="https://www.netlify.com" target="_blank" class="text-brand-600 underline font-bold">Netlify</a> に、保存したファイルをドラッグ＆ドロップでアップロードします。</div>
+            <div>3. 発行された本物の <code>https://...</code> のURLをコピーし、Notionに貼り付けて<strong>「埋め込みを作成 (Create Embed)」</strong>を押します。</div>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-3">
+          <label class="block font-bold text-slate-700 mb-1">仮の共有用アドレス (参考値)</label>
+          <div class="flex gap-1.5">
+            <input type="text" id="share-url-input" readonly class="w-full border bg-slate-50 rounded-xl p-2 font-mono text-[10px] text-slate-600">
+            <button id="copy-url-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 rounded-xl font-bold whitespace-nowrap">コピー</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="preview-modal" class="fixed inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+      <div class="px-5 py-3.5 bg-slate-50 border-b flex justify-between items-center">
+        <h3 id="preview-modal-title" class="font-bold text-slate-900 text-sm">マニュアルプレビュー</h3>
+        <button id="close-preview-modal-btn" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <div class="p-5 overflow-y-auto flex flex-col md:flex-row gap-4 max-h-[calc(90vh-100px)]">
+        <div class="flex-1 space-y-3" id="preview-modal-timeline"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ブラウザキャプチャ制限時のフォールバックモーダル -->
+  <div id="fallback-modal" class="fixed inset-0 z-50 bg-slate-900/70 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 flex flex-col">
+      <div class="p-6 text-center">
+        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h3 class="text-slate-900 font-bold text-base mb-2">画面共有機能の制限について</h3>
+        <p class="text-slate-500 text-xs leading-relaxed mb-6">
+          現在、実行されているSandbox環境（iframe内）のセキュリティ制限により、ブラウザの「画面共有による直接録画機能」の開始が制限されました。<br><br>
+          <span class="text-brand-600 font-semibold">ですがご安心ください！「動画インポート」または「デモシミュレータ」ですぐにManuRecoを完全に体験、ご利用いただくことが可能です。</span>
+        </p>
+        <div class="flex flex-col gap-2">
+          <button id="fallback-import-btn" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors shadow-md">
+            手元にある操作動画ファイルを読み込んで使う
+          </button>
+          <button id="fallback-demo-btn" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors border border-slate-200">
+            🚀 リアルな擬似デモシミュレータを試す
+          </button>
+        </div>
+      </div>
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <button onclick="document.getElementById('fallback-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-xs font-semibold">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // --- データベース(LocalStorage)状態管理 ---
+    let db = {
+      folders: [
+        { id: 'f-all', name: '📂 すべてのマニュアル' },
+        { id: 'f-1', name: '📁 IT・システム操作' },
+        { id: 'f-2', name: '📁 総務・基本手続き' }
+      ],
+      manuals: []
+    };
+
+    // ローカルストレージからの読み込み
+    function loadDatabase() {
+      const savedData = localStorage.getItem('manureco_pro_db');
+      if (savedData) {
+        try {
+          db = JSON.parse(savedData);
+        } catch(e) {
+          console.error("DB読み込みに失敗したため初期設定で起動します", e);
+        }
+      } else {
+        // 初期ダミーマニュアル（動作イメージをすぐに掴めるように）
+        db.manuals = [
+          {
+            id: 'm-demo-1',
+            title: '【サンプル】サーバー設定変更と環境リブート作業',
+            folderId: 'f-1',
+            createdAt: '2026-05-21 08:00',
+            timeline: [
+              { id: '1', time: 0, text: 'マニュアル収録の開始。', type: 'system' },
+              { id: '2', time: 3, text: 'サイドバーからユーザー管理画面を展開して、アクティブノードを確認します。', type: 'step' },
+              { id: '3', time: 7, text: 'システム環境設定を開きます。アドレス重複エラーに要注意。', type: 'important' },
+              { id: '4', time: 11, text: '保存ボタンを押すとポップアップが出現します。', type: 'step' },
+              { id: '5', time: 15, text: '警告は無視して続行を選択し、ネットワーク全体をリブート確定します。', type: 'important' }
+            ]
+          }
+        ];
+        saveDatabase();
+      }
+      document.getElementById('library-count-badge').textContent = db.manuals.length;
+    }
+
+    function saveDatabase() {
+      localStorage.setItem('manureco_pro_db', JSON.stringify(db));
+      document.getElementById('library-count-badge').textContent = db.manuals.length;
+    }
+
+    // --- 各種状態フラグ ---
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let screenStream = null;
+    let micStream = null;
+    let mixedStream = null;
+    let recognition = null;
+    let isRecording = false;
+    let isMicMuted = false;
+    let isImportMode = false;
+    let isDemoMode = false;
+    let startTime = null;
+    let timerInterval = null;
+    let activeTag = 'memo';
+    let currentSelectedFolderId = 'f-all';
+
+    // デモシミュレータ状態
+    let demoTime = 0;
+    let demoInterval = null;
+
+    // 現在進行中のタイムラインバッファ
+    let currentTimelineData = [];
+
+    // --- DOM要素取得 ---
+    const navWorkspaceBtn = document.getElementById('nav-workspace-btn');
+    const navLibraryBtn = document.getElementById('nav-library-btn');
+    const viewWorkspace = document.getElementById('view-workspace');
+    const viewLibrary = document.getElementById('view-library');
+
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const micToggleBtn = document.getElementById('mic-toggle-btn');
+    const videoPreview = document.getElementById('video-preview');
+    const videoPlaceholder = document.getElementById('video-placeholder');
+    const timerDisplay = document.getElementById('timer-display');
+    const timerLabel = document.getElementById('timer-label');
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusText = document.getElementById('status-text');
+    const audioStatus = document.getElementById('audio-status');
+    const recordingOverlay = document.getElementById('recording-overlay');
+    const recLabelText = document.getElementById('rec-label-text');
+    const videoArea = document.getElementById('video-area');
+    
+    const timelineContainer = document.getElementById('timeline-container');
+    const timelinePlaceholder = document.getElementById('timeline-placeholder');
+    const clearTimelineBtn = document.getElementById('clear-timeline-btn');
+    
+    const memoInput = document.getElementById('memo-input');
+    const addMemoBtn = document.getElementById('add-memo-btn');
+    const tagButtons = document.querySelectorAll('.tag-btn');
+    const saveLibraryBanner = document.getElementById('save-library-banner');
+
+    // ライブラリUI関連
+    const folderListContainer = document.getElementById('folder-list-container');
+    const manualsGridContainer = document.getElementById('manuals-grid-container');
+    const libraryEmptyPlaceholder = document.getElementById('library-empty-placeholder');
+    const currentFolderTitle = document.getElementById('current-folder-title');
+    const addFolderBtn = document.getElementById('add-folder-btn');
+
+    // モーダル関連
+    const saveModal = document.getElementById('save-modal');
+    const openSaveModalBtn = document.getElementById('open-save-modal-btn');
+    const closeSaveModalBtn = document.getElementById('close-save-modal-btn');
+    const executeSaveBtn = document.getElementById('execute-save-btn');
+    const modalManualTitle = document.getElementById('modal-manual-title');
+    const modalManualFolder = document.getElementById('modal-manual-folder');
+
+    // Notion連携関連
+    const shareModal = document.getElementById('share-modal');
+    const closeShareModalBtn = document.getElementById('close-share-modal-btn');
+    const shareUrlInput = document.getElementById('share-url-input');
+    const copyUrlBtn = document.getElementById('copy-url-btn');
+    const notionMarkdownOutput = document.getElementById('notion-markdown-output');
+    const copyNotionMDBtn = document.getElementById('copy-notion-md-btn');
+    
+    // Notion共有モーダルのタブ切り替え
+    const shareTabCopy = document.getElementById('share-tab-copy');
+    const shareTabEmbed = document.getElementById('share-tab-embed');
+    const sharePanelCopy = document.getElementById('share-panel-copy');
+    const sharePanelEmbed = document.getElementById('share-panel-embed');
+
+    shareTabCopy.addEventListener('click', () => {
+      shareTabCopy.className = "flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center";
+      shareTabEmbed.className = "flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center";
+      sharePanelCopy.classList.remove('hidden');
+      sharePanelEmbed.classList.add('hidden');
+    });
+
+    shareTabEmbed.addEventListener('click', () => {
+      shareTabEmbed.className = "flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center";
+      shareTabCopy.className = "flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center";
+      sharePanelEmbed.classList.remove('hidden');
+      sharePanelCopy.classList.add('hidden');
+    });
+
+    const previewModal = document.getElementById('preview-modal');
+    const closePreviewModalBtn = document.getElementById('close-preview-modal-btn');
+    const previewModalTitle = document.getElementById('preview-modal-title');
+    const previewModalTimeline = document.getElementById('preview-modal-timeline');
+
+    // インポートトリガー等
+    const importTriggerBtn = document.getElementById('import-trigger-btn');
+    const demoTriggerBtn = document.getElementById('demo-trigger-btn');
+    const videoFileInput = document.getElementById('video-file-input');
+    const demoSimulator = document.getElementById('demo-simulator');
+    const fallbackModal = document.getElementById('fallback-modal');
+
+    // フォールバック内ボタン制御
+    document.getElementById('fallback-import-btn').addEventListener('click', () => {
+      fallbackModal.classList.add('hidden');
+      videoFileInput.click();
+    });
+    document.getElementById('fallback-demo-btn').addEventListener('click', () => {
+      fallbackModal.classList.add('hidden');
+      startDemoMode();
+    });
+
+    // 埋め込み環境かどうかの初期自動判定
+    window.onload = function() {
+      if (window.self !== window.top) {
+        document.getElementById('sandbox-banner').classList.remove('hidden');
+        startBtn.classList.remove('bg-brand-600', 'hover:bg-brand-700');
+        startBtn.classList.add('bg-slate-600', 'hover:bg-slate-700');
+      }
+    };
+
+    // --- タブ切り替え処理 ---
+    navWorkspaceBtn.addEventListener('click', () => {
+      toggleTabs(true);
+    });
+    navLibraryBtn.addEventListener('click', () => {
+      toggleTabs(false);
+      renderLibrary();
+    });
+
+    function toggleTabs(showWorkspace) {
+      if (showWorkspace) {
+        navWorkspaceBtn.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5";
+        navLibraryBtn.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5";
+        viewWorkspace.classList.remove('hidden');
+        viewLibrary.classList.add('hidden');
+      } else {
+        navLibraryBtn.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5";
+        navWorkspaceBtn.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5";
+        viewWorkspace.classList.add('hidden');
+        viewLibrary.classList.remove('hidden');
+      }
+    }
+
+    // --- 音声認識設定 ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'ja-JP';
+
+      recognition.onresult = (event) => {
+        const text = event.results[event.results.length - 1][0].transcript.trim();
+        if (text && (isRecording || isImportMode || isDemoMode)) {
+          addTimelineItem(getCurrentTimestamp(), text, 'transcript');
+        }
+      };
+      recognition.onerror = () => {};
+      recognition.onend = () => {
+        if ((isRecording || isImportMode || isDemoMode) && !isMicMuted) {
+          try { recognition.start(); } catch(e) {}
+        }
+      };
+    }
+
+    // --- ドラッグ&ドロップ & インポート処理 ---
+    importTriggerBtn.addEventListener('click', () => videoFileInput.click());
+    videoFileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) handleVideoFileImport(e.target.files[0]);
+    });
+
+    ['dragenter', 'dragover'].forEach(name => {
+      videoArea.addEventListener(name, (e) => { e.preventDefault(); videoArea.classList.add('border-brand-500', 'bg-slate-900/60'); });
+    });
+    ['dragleave', 'drop'].forEach(name => {
+      videoArea.addEventListener(name, (e) => { e.preventDefault(); videoArea.classList.remove('border-brand-500', 'bg-slate-900/60'); });
+    });
+    videoArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('video/')) handleVideoFileImport(file);
+    });
+
+    function handleVideoFileImport(file) {
+      isImportMode = true; isRecording = false; isDemoMode = false; stopTimer();
+      videoPreview.srcObject = null;
+      videoPreview.src = URL.createObjectURL(file);
+      videoPreview.muted = false; videoPreview.controls = true;
+      videoPreview.classList.remove('hidden'); videoPlaceholder.classList.add('hidden'); demoSimulator.classList.add('hidden');
+      timerLabel.textContent = "PlaybackTime"; timerDisplay.textContent = "00:00";
+      statusIndicator.className = "w-3.5 h-3.5 rounded-full bg-emerald-500";
+      statusText.textContent = "動画インポート完了";
+      audioStatus.textContent = "動画を再生・確認しながら時間連動の解説マニュアルを作成できます";
+
+      memoInput.disabled = false;
+      memoInput.classList.remove('bg-slate-200', 'text-slate-500', 'cursor-not-allowed');
+      memoInput.classList.add('bg-white', 'text-slate-900');
+      memoInput.placeholder = "動画を見ながら、手順やコツをここに入力して送信...";
+      addMemoBtn.disabled = false;
+
+      videoPreview.ontimeupdate = () => { timerDisplay.textContent = formatTime(videoPreview.currentTime); };
+      currentTimelineData = [];
+      addTimelineItem(0, `操作マニュアル動画「${file.name}」を配置しました。`, "system");
+      saveLibraryBanner.classList.remove('hidden'); // 保管バナー活性化
+      if (recognition && !isMicMuted) { try { recognition.start(); } catch(e){} }
+      showToast("解説動画を正常にインポートしました。");
+    }
+
+    // --- リアルシミュレータデモモード ---
+    demoTriggerBtn.addEventListener('click', startDemoMode);
+    const vCursor = document.getElementById('virtual-cursor');
+    const demoSideHome = document.getElementById('demo-side-home');
+    const demoSideUsers = document.getElementById('demo-side-users');
+    const demoSideSettings = document.getElementById('demo-side-settings');
+    const demoContentTitle = document.getElementById('demo-content-title');
+    const demoContentDesc = document.getElementById('demo-content-desc');
+    const demoDialog = document.getElementById('demo-dialog');
+
+    function animateVirtualCursor(top, left) {
+      vCursor.style.transition = `all 1000ms ease-out`; vCursor.style.top = top; vCursor.style.left = left;
+    }
+    function createClickRipple() {
+      const ripple = document.createElement('div'); ripple.className = 'click-ripple';
+      ripple.style.left = `calc(${vCursor.style.left} - 2px)`; ripple.style.top = `calc(${vCursor.style.top} + 2px)`;
+      demoSimulator.appendChild(ripple); setTimeout(() => ripple.remove(), 600);
+    }
+
+    function startDemoMode() {
+      isDemoMode = true; isRecording = false; isImportMode = false; stopTimer();
+      videoPreview.classList.add('hidden'); videoPlaceholder.classList.add('hidden'); demoSimulator.classList.remove('hidden');
+      recordingOverlay.classList.remove('opacity-0'); recordingOverlay.classList.add('opacity-100');
+      recLabelText.textContent = "SIMULATION"; timerLabel.textContent = "ElapsedTime"; timerDisplay.textContent = "00:00";
+      statusIndicator.className = "w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse";
+      statusText.textContent = "デモ稼働中";
+
+      memoInput.disabled = false; memoInput.classList.remove('bg-slate-200', 'text-slate-500', 'cursor-not-allowed');
+      memoInput.classList.add('bg-white', 'text-slate-900'); memoInput.placeholder = "メモを入れて送信すると時間連動の実験ができます...";
+      addMemoBtn.disabled = false;
+
+      demoTime = 0; clearInterval(demoInterval);
+      demoInterval = setInterval(() => {
+        demoTime++; timerDisplay.textContent = formatTime(demoTime);
+        if (demoTime === 2) animateVirtualCursor('30%', '15%');
+        if (demoTime === 3) {
+          createClickRipple(); demoSideHome.className = "p-1 text-slate-500"; demoSideUsers.className = "p-1 bg-brand-600 text-white rounded font-medium";
+          demoContentTitle.textContent = "👥 登録メンバー名簿一覧"; demoContentDesc.textContent = "組織のアクティブメンバーデータベース";
+          addTimelineItem(3, "【操作手順】サイドナビゲーションから「ユーザー管理」画面を展開します。", "step");
+        }
+        if (demoTime === 6) animateVirtualCursor('42%', '15%');
+        if (demoTime === 7) {
+          createClickRipple(); demoSideUsers.className = "p-1 text-slate-500"; demoSideSettings.className = "p-1 bg-brand-600 text-white rounded font-medium";
+          demoContentTitle.textContent = "⚙️ システム環境設定"; demoContentDesc.textContent = "基本構成クラスパラメーターの変更ノード。";
+          addTimelineItem(7, "【操作手順】「システム環境設定」を選択し、構成アドレスパラメータを開きます。", "step");
+        }
+        if (demoTime === 10) animateVirtualCursor('82%', '75%');
+        if (demoTime === 11) { createClickRipple(); demoDialog.classList.remove('hidden'); addTimelineItem(11, "設定保存を押すとシステムよりリブート警告ダイアログが表示されます。", "important"); }
+        if (demoTime === 14) animateVirtualCursor('44%', '58%');
+        if (demoTime === 15) { createClickRipple(); demoDialog.classList.add('hidden'); addTimelineItem(15, "警告内容を確認の上、「続行」ボタンを押して全体の適用リブートを確定させます。", "important"); }
+      }, 1000);
+
+      currentTimelineData = [];
+      addTimelineItem(0, "マニュアル生成の擬似シミュレーションを開始しました。", "system");
+      saveLibraryBanner.classList.remove('hidden');
+      showToast("疑似デモを開始しました。右側の連動動作をご確認ください！");
+    }
+
+    document.getElementById('quit-demo-btn').addEventListener('click', () => {
+      isDemoMode = false; stopTimer(); resetToInitial(); demoSimulator.classList.add('hidden');
+    });
+
+    // --- 画面録画（エラー時フォールバック誘導） ---
+    startBtn.addEventListener('click', async () => {
+      try {
+        recordedChunks = []; isImportMode = false; isDemoMode = false; demoSimulator.classList.add('hidden');
+        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
+        videoPreview.srcObject = screenStream; videoPreview.muted = true;
+        videoPreview.classList.remove('hidden'); videoPlaceholder.classList.add('hidden');
+        isRecording = true; startTimer(); updateUIState(true);
+        addTimelineItem(0, "マニュアル動画のキャプチャ収録を開始しました。", "system");
+        saveLibraryBanner.classList.remove('hidden');
+      } catch (err) {
+        // iframe内制限等のエラー時、自動でフォールバック用ダイアログを起動
+        console.warn("Screen Capture Restricted. Open Fallback UI.");
+        document.getElementById('fallback-modal').classList.remove('hidden');
+        resetToInitial();
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      isRecording = false; stopTimer(); updateUIState(false);
+      if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+      showToast("収録を完了しました。保管用バナーよりライブラリにセーブできます。");
+    });
+
+    // --- タイムライン制御コア ---
+    function addTimelineItem(time, text, type) {
+      currentTimelineData.push({ id: Date.now() + Math.random().toString(36).substr(2,5), time, text, type });
+      currentTimelineData.sort((a,b) => a.time - b.time);
+      renderTimeline();
+    }
+    function renderTimeline() {
+      if (currentTimelineData.length === 0) { timelinePlaceholder.classList.remove('hidden'); return; }
+      timelinePlaceholder.classList.add('hidden');
+      timelineContainer.querySelectorAll('.timeline-item-row').forEach(el => el.remove());
+
+      currentTimelineData.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'timeline-item-row flex gap-2 relative border-l pl-3 pb-2 border-slate-200 text-xs';
+        let icon = '📝';
+        if (item.type === 'important') icon = '⚠️';
+        if (item.type === 'step') icon = '⚙️';
+        if (item.type === 'transcript') icon = '🎙️';
+        if (item.type === 'system') icon = '🤖';
+
+        row.innerHTML = `
+          <div class="absolute -left-[4.5px] top-1 w-2 h-2 rounded-full bg-slate-300"></div>
+          <div class="flex-1 flex flex-col gap-0.5">
+            <div class="flex items-center gap-2">
+              <span class="bg-brand-50 text-brand-700 font-mono text-[10px] px-1 rounded font-bold cursor-pointer stamp-jump" data-time="${item.time}">⏱️ ${formatTime(item.time)}</span>
+              <span class="text-[9px] text-slate-400">${icon}</span>
+            </div>
+            <p class="text-slate-700 font-light focus:bg-white outline-none edit-txt-node" contenteditable="true" data-id="${item.id}">${item.text}</p>
+          </div>
+        `;
+        timelineContainer.appendChild(row);
+      });
+
+      // ジャンプイベント
+      timelineContainer.querySelectorAll('.stamp-jump').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const t = parseFloat(btn.getAttribute('data-time'));
+          if (videoPreview.src || videoPreview.srcObject) videoPreview.currentTime = t;
+          if (isDemoMode) { demoTime = t; timerDisplay.textContent = formatTime(demoTime); }
+        });
+      });
+      // リアルタイムテキスト書き換えインプレース
+      timelineContainer.querySelectorAll('.edit-txt-node').forEach(p => {
+        p.addEventListener('blur', () => {
+          const id = p.getAttribute('data-id');
+          const item = currentTimelineData.find(i => i.id === id);
+          if (item) item.text = p.innerText.trim();
+        });
+      });
+      timelineContainer.scrollTop = timelineContainer.scrollHeight;
+    }
+
+    // --- メモ送信コア ---
+    function sendMemo() {
+      const v = memoInput.value.trim(); if (!v) return;
+      addTimelineItem(getCurrentTimestamp(), v, activeTag); memoInput.value = '';
+    }
+    addMemoBtn.addEventListener('click', sendMemo);
+    memoInput.addEventListener('keydown', (e) => { if (e.key==='Enter' && (e.ctrlKey||e.metaKey)) sendMemo() });
+    clearTimelineBtn.addEventListener('click', () => { currentTimelineData = []; renderTimeline(); });
+
+    // タグ選択
+    tagButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tagButtons.forEach(b => b.className = "tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600");
+        activeTag = btn.getAttribute('data-tag');
+        btn.className = `tag-btn text-[10px] px-2.5 py-0.5 rounded-full scale-105 font-bold ${activeTag==='memo'?'bg-brand-100 text-brand-700':activeTag==='important'?'bg-amber-100 text-amber-700':'bg-emerald-100 text-emerald-700'}`;
+      });
+    });
+
+    // --- ライブラリ保管＆フォルダ管理ロジックの統合実体 ---
+    openSaveModalBtn.addEventListener('click', () => {
+      modalManualTitle.value = isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書";
+      modalManualFolder.innerHTML = db.folders.filter(f => f.id !== 'f-all').map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+      saveModal.classList.remove('hidden');
+    });
+    closeSaveModalBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
+
+    executeSaveBtn.addEventListener('click', () => {
+      const title = modalManualTitle.value.trim();
+      const folderId = modalManualFolder.value;
+      if (!title) { alert('マニュアルのタイトルを入力してください。'); return; }
+
+      const newManual = {
+        id: 'm-' + Date.now(),
+        title: title,
+        folderId: folderId,
+        createdAt: getFormattedDate(true),
+        timeline: [...currentTimelineData]
+      };
+
+      db.manuals.push(newManual);
+      saveDatabase();
+      saveModal.classList.add('hidden');
+      showToast("✔️ ライブラリに安全にマニュアルを保管しました！");
+      
+      toggleTabs(false);
+      renderLibrary();
+    });
+
+    // フォルダ新規追加
+    addFolderBtn.addEventListener('click', () => {
+      const name = prompt('新規作成するマニュアルフォルダ名を入力してください：');
+      if (name) {
+        db.folders.push({ id: 'f-' + Date.now(), name: '📁 ' + name });
+        saveDatabase();
+        renderLibrary();
+      }
+    });
+
+    // ライブラリ描画コア
+    function renderLibrary() {
+      // 1. 左側フォルダサイドバー表示
+      folderListContainer.innerHTML = db.folders.map(f => {
+        const isSelected = f.id === currentSelectedFolderId;
+        const count = f.id === 'f-all' ? db.manuals.length : db.manuals.filter(m => m.folderId === f.id).length;
+        return `
+          <div class="flex justify-between items-center group p-2 rounded-lg cursor-pointer font-medium transition-all ${isSelected ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" onclick="selectFolder('${f.id}')">
+            <span class="truncate">${f.name}</span>
+            <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full">${count}</span>
+          </div>
+        `;
+      }).join('');
+
+      // 2. 右側マニュアルカード一覧表示
+      const filteredManuals = currentSelectedFolderId === 'f-all' ? db.manuals : db.manuals.filter(m => m.folderId === currentSelectedFolderId);
+      const fObj = db.folders.find(f => f.id === currentSelectedFolderId);
+      currentFolderTitle.textContent = fObj ? fObj.name : "一覧";
+
+      if (filteredManuals.length === 0) {
+        manualsGridContainer.classList.add('hidden');
+        libraryEmptyPlaceholder.classList.remove('hidden');
+        return;
+      }
+      libraryEmptyPlaceholder.classList.add('hidden');
+      manualsGridContainer.classList.remove('hidden');
+
+      manualsGridContainer.innerHTML = filteredManuals.map(m => {
+        return `
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-36">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[9px] text-slate-400 font-mono">📅 ${m.createdAt}</span>
+                <button onclick="deleteManual('${m.id}', event)" class="text-slate-300 hover:text-red-500 text-xs">&times; 削除</button>
+              </div>
+              <h4 class="text-xs font-bold text-slate-800 line-clamp-2 cursor-pointer hover:text-brand-600" onclick="openManualPreview('${m.id}')">📄 ${m.title}</h4>
+              <p class="text-[10px] text-brand-600 font-semibold mt-1">⏳ 連動ステップ数: ${m.timeline.filter(t=>t.type!=='system').length}項目</p>
+            </div>
+            
+            <div class="pt-2 border-t border-slate-100 flex gap-2">
+              <button onclick="openNotionShare('${m.id}', event)" class="flex-1 bg-slate-900 text-white font-bold text-[10px] py-1 px-2 rounded hover:bg-slate-800 transition-colors flex items-center justify-center gap-1">
+                🚀 Notionに貼り付け
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.selectFolder = function(id) {
+      currentSelectedFolderId = id;
+      renderLibrary();
+    };
+
+    window.deleteManual = function(id, e) {
+      e.stopPropagation();
+      if(confirm('このマニュアル保管データをライブラリから完全に削除しますか？')) {
+        db.manuals = db.manuals.filter(m => m.id !== id);
+        saveDatabase();
+        renderLibrary();
+      }
+    };
+
+    // Notion連携埋め込み用ポップアップ呼び出し (Notion最適化Markdownの自動作成)
+    window.openNotionShare = function(id, e) {
+      e.stopPropagation();
+      const m = db.manuals.find(manual => manual.id === id);
+      if (!m) return;
+
+      // 1. 疑似共有埋め込みリンクの作成
+      const simulatedShareUrl = `https://manureco.io/share/embed_${m.id}`;
+      shareUrlInput.value = simulatedShareUrl;
+
+      // 2. Notionに特化した美しいMarkdown（トグル対応）を動的生成
+      let notionMd = `### 📄 ${m.title}\n`;
+      notionMd += `*作成日: ${m.createdAt}*\n\n`;
+      notionMd += `> 💡 **ManuReco タイムスタンプ説明:** 下の各項目のタイムスタンプ表記（例 \`[01:12]\`）は、作業動画の経過再生時間を指しています。Notion上にアップロードした動画ファイルを並べてご確認ください。\n\n`;
+      
+      // 各タイムラインをトグル（開閉可能）またはリストに変換して美しく出力
+      m.timeline.forEach(t => {
+        if (t.type === 'system') return;
+        
+        let emoji = '📝 【メモ】';
+        if (t.type === 'important') emoji = '⚠️ 【重要・コツ】';
+        if (t.type === 'step') emoji = '⚙️ 【操作手順】';
+        if (t.type === 'transcript') emoji = '🎙️ 【音声書き起こし】';
+
+        // Notionのトグル形式をシミュレート
+        notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji}\n`;
+        notionMd += `>> ${t.text}\n\n`;
+      });
+
+      notionMarkdownOutput.value = notionMd;
+
+      // タブの初期フォーカスを「パターンA（コピー推奨）」に設定して表示
+      shareTabCopy.click();
+      shareModal.classList.remove('hidden');
+    };
+
+    closeShareModalBtn.addEventListener('click', () => shareModal.classList.add('hidden'));
+    
+    // Notion最適化Markdownコピーの挙動
+    copyNotionMDBtn.addEventListener('click', () => {
+      notionMarkdownOutput.select();
+      document.execCommand('copy');
+      showToast("Notion専用マニュアルテキストをコピーしました！");
+    });
+
+    copyUrlBtn.addEventListener('click', () => {
+      shareUrlInput.select();
+      document.execCommand('copy');
+      showToast("共有用アドレスをコピーしました！");
+    });
+
+    // 詳細プレビュー
+    window.openManualPreview = function(id) {
+      const m = db.manuals.find(manual => manual.id === id);
+      if (!m) return;
+      previewModalTitle.textContent = m.title;
+      previewModalTimeline.innerHTML = m.timeline.map(t => {
+        let tagB = '📝 メモ';
+        if (t.type==='important') tagB = '⚠️ コツ';
+        if (t.type==='step') tagB = '⚙️ 手順';
+        if (t.type==='transcript') tagB = '🎙️ 音声';
+        if (t.type==='system') tagB = '🤖 補足';
+        return `
+          <div class="p-2 bg-slate-50 border rounded-lg text-xs flex flex-col gap-1">
+            <div class="flex items-center gap-2"><span class="font-mono bg-brand-50 text-brand-700 px-1 rounded font-bold">⏱️ ${formatTime(t.time)}</span><span class="text-[10px] text-slate-400">${tagB}</span></div>
+            <p class="text-slate-700 font-light">${t.text}</p>
+          </div>
+        `;
+      }).join('');
+      previewModal.classList.remove('hidden');
+    };
+    closePreviewModalBtn.addEventListener('click', () => previewModal.classList.add('hidden'));
+
+    // --- 各種ヘルパーユーティリティ ---
+    function getCurrentTimestamp() {
+      if (isRecording) return getElapsedSeconds();
+      if (isDemoMode) return demoTime;
+      if (isImportMode && videoPreview.src) return videoPreview.currentTime;
+      return videoPreview.currentTime || 0;
+    }
+    function formatTime(s) {
+      return `${Math.floor(s/60).toString().padStart(2,'0')}:${Math.floor(s%60).toString().padStart(2,'0')}`;
+    }
+    function getElapsedSeconds() { return startTime ? (Date.now() - startTime)/1000 : 0; }
+    function startTimer() { startTime = Date.now(); timerInterval = setInterval(() => { timerDisplay.textContent = formatTime(getElapsedSeconds()); }, 500); }
+    function stopTimer() { clearInterval(timerInterval); clearInterval(demoInterval); }
+    
+    function updateUIState(rec) {
+      startBtn.disabled = rec; startBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-1 shadow-sm ${rec?'bg-slate-300 text-slate-400 cursor-not-allowed':'bg-brand-600 text-white'}`;
+      stopBtn.disabled = !rec; stopBtn.className = `p-2.5 rounded-xl text-xs font-bold ${rec?'bg-red-600 text-white':'bg-white border border-slate-200 text-slate-400 cursor-not-allowed'}`;
+      memoInput.disabled = false; memoInput.classList.remove('bg-slate-100','cursor-not-allowed'); memoInput.classList.add('bg-white');
+      memoInput.placeholder = "手順をここに入力して送信..."; addMemoBtn.disabled = false;
+      statusIndicator.className = rec ? "w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse" : "w-3.5 h-3.5 rounded-full bg-emerald-500";
+      statusText.textContent = rec ? "画面収録中..." : "編集・プレビュー中";
+      recordingOverlay.classList.toggle('opacity-100', rec);
+    }
+    
+    function resetToInitial() {
+      isRecording = false; isImportMode = false; isDemoMode = false; stopTimer();
+      timerDisplay.textContent = "00:00"; timerLabel.textContent = "ElapsedTime";
+      statusIndicator.className = "w-3.5 h-3.5 rounded-full bg-slate-300"; statusText.textContent = "準備完了";
+      memoInput.disabled = true; memoInput.classList.add('bg-slate-100','cursor-not-allowed'); memoInput.placeholder = "動画を設定すると入力できます...";
+      addMemoBtn.disabled = true; videoPreview.classList.add('hidden'); videoPlaceholder.classList.remove('hidden');
+      recordingOverlay.classList.add('opacity-0');
+    }
+
+    function getFormattedDate(pretty = false) {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const h = String(now.getHours()).padStart(2, '0');
+      const mi = String(now.getMinutes()).padStart(2, '0');
+      return pretty ? `${y}-${m}-${d} ${h}:${mi}` : `${y}${m}${d}_${h}${mi}`;
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-lg z-50 flex items-center gap-1.5 transition-all opacity-0';
+      t.innerHTML = `<span>✔️</span><span>${msg}</span>`; document.body.appendChild(t);
+      setTimeout(() => t.classList.remove('opacity-0'), 50);
+      setTimeout(() => { t.classList.add('opacity-0'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    // 初期ロード実行
+    loadDatabase();
+  </script>
+</body>
+</html>
