@@ -106,7 +106,7 @@
       </div>
     </header>
 
-    <!-- 環境警告バナー (iframe内実行時に動的表示) -->
+    <!-- 環境警告バナー -->
     <div id="sandbox-banner" class="hidden bg-amber-50 border-b border-amber-200 px-6 py-2 text-amber-800 text-[11px] flex items-center justify-between transition-all">
       <div class="flex items-center gap-2"><span>⚠️</span><span>環境の制限により画面直接録画機能が使えない場合があります。その際は<strong>「動画ファイル読込」</strong>をご利用ください。</span></div>
       <button onclick="document.getElementById('sandbox-banner').remove()" class="text-amber-500 hover:text-amber-800 font-bold px-2 text-sm">&times;</button>
@@ -213,11 +213,23 @@
             </div>
           </div>
 
-          <!-- ワークスペース用操作ボタン -->
-          <div class="grid grid-cols-3 gap-2">
-            <button id="start-btn" class="p-2.5 bg-slate-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 col-span-1 shadow-sm">🔴 画面録画</button>
+          <!-- ワークスペース用操作ボタン (🚨修正: マイクテスト機能追加) -->
+          <div class="grid grid-cols-4 gap-2">
+            <button id="start-btn" class="p-2.5 bg-slate-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 col-span-2 shadow-sm transition-transform active:scale-95">🔴 画面・音声 収録開始</button>
             <button id="stop-btn" disabled class="p-2.5 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed">⏹️ 停止</button>
-            <button id="mic-toggle-btn" class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5">🎙️ マイク ON</button>
+            <button id="mic-test-btn" class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all">🎙️ マイクテスト</button>
+          </div>
+          
+          <!-- 🚨追加: マイクテストレベルメーター -->
+          <div id="mic-level-container" class="mt-1 hidden bg-white p-3 rounded-xl border border-slate-200 flex items-center gap-3 shadow-sm transition-all">
+             <div class="flex flex-col items-center w-12">
+               <span class="text-xl" id="mic-icon">🎤</span>
+               <span class="text-[9px] text-slate-500 font-bold mt-0.5" id="mic-status-label">入力確認</span>
+             </div>
+             <div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200 relative">
+               <div id="mic-level-bar" class="absolute left-0 top-0 bottom-0 bg-brand-500 w-0 transition-all duration-75"></div>
+             </div>
+             <span id="mic-percent-label" class="text-xs font-mono font-bold text-slate-500 w-8 text-right">0%</span>
           </div>
           
           <!-- 手動保存アクションエリア -->
@@ -819,6 +831,72 @@
     let activeEditingManualId = null;
     let activeVideoBlob = null;
 
+    // --- 🎙️ マイクテスト機能 ---
+    let testMicStream = null;
+    let testAudioContext = null;
+    let testAnalyser = null;
+    let testReqAnimFrame = null;
+
+    window.toggleMicTest = async function() {
+      const container = getEl('mic-level-container');
+      const btn = getEl('mic-test-btn');
+      
+      if (testMicStream) {
+        if (testReqAnimFrame) cancelAnimationFrame(testReqAnimFrame);
+        testMicStream.getTracks().forEach(t => t.stop());
+        testMicStream = null;
+        if (testAudioContext) { testAudioContext.close(); testAudioContext = null; }
+        
+        addClass('mic-level-container', 'hidden');
+        setHtml('mic-test-btn', '🎙️ マイクテスト');
+        btn.classList.remove('bg-brand-50', 'border-brand-300', 'text-brand-700');
+        return;
+      }
+      
+      try {
+        testMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        removeClass('mic-level-container', 'hidden');
+        setHtml('mic-test-btn', '⏹️ テスト終了');
+        btn.classList.add('bg-brand-50', 'border-brand-300', 'text-brand-700');
+        
+        testAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        testAnalyser = testAudioContext.createAnalyser();
+        const microphone = testAudioContext.createMediaStreamSource(testMicStream);
+        
+        testAnalyser.smoothingTimeConstant = 0.8;
+        testAnalyser.fftSize = 256;
+        microphone.connect(testAnalyser);
+        
+        const dataArray = new Uint8Array(testAnalyser.frequencyBinCount);
+        const bar = getEl('mic-level-bar');
+        const pctLabel = getEl('mic-percent-label');
+        
+        function updateMicLevel() {
+          testAnalyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+          const average = sum / dataArray.length;
+          
+          let percent = Math.min(100, Math.round((average / 80) * 100));
+          
+          if (bar) {
+            bar.style.width = percent + '%';
+            if (percent > 85) bar.className = 'absolute left-0 top-0 bottom-0 transition-all duration-75 bg-red-500';
+            else if (percent > 40) bar.className = 'absolute left-0 top-0 bottom-0 transition-all duration-75 bg-emerald-500';
+            else bar.className = 'absolute left-0 top-0 bottom-0 transition-all duration-75 bg-brand-500';
+          }
+          if (pctLabel) pctLabel.textContent = percent + '%';
+          
+          testReqAnimFrame = requestAnimationFrame(updateMicLevel);
+        }
+        updateMicLevel();
+        
+      } catch(err) {
+        console.error(err);
+        showToast("マイクへのアクセスがブロックされました。ブラウザの設定をご確認ください。");
+      }
+    };
+
     // --- 🚨 画面録画データを直接保存する処理 ---
     async function saveCapturedVideoDirectly(blob, defaultName) {
       try {
@@ -1093,7 +1171,6 @@
       toggleTabs(true); 
     };
 
-    // 🚨 修正: 確実にNotion用URLを発行する処理
     window.openNotionShare = function(id, e) {
       if (e) e.stopPropagation();
       const m = window.dbState.manuals.find(manual => manual.id === id);
@@ -1145,7 +1222,7 @@
 
     function updateUIState(rec) {
       const sBtn = getEl('start-btn');
-      if (sBtn) { sBtn.disabled = rec; sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-1 shadow-sm ${rec?'bg-slate-300 text-slate-400 cursor-not-allowed':'bg-brand-600 text-white'}`; }
+      if (sBtn) { sBtn.disabled = rec; sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm ${rec?'bg-slate-300 text-slate-400 cursor-not-allowed':'bg-brand-600 text-white'}`; }
       const stBtn = getEl('stop-btn');
       if (stBtn) { stBtn.disabled = !rec; stBtn.className = `p-2.5 rounded-xl text-xs font-bold ${rec?'bg-red-600 text-white':'bg-white border border-slate-200 text-slate-400 cursor-not-allowed'}`; }
       const memoTitleIn = getEl('memo-title-input'); const memoIn = getEl('memo-input');
@@ -1177,6 +1254,8 @@
     // 全イベントリスナーの登録と初期化 (DOM Load後)
     // ==========================================
     window.onload = () => {
+      onEvent('mic-test-btn', 'click', window.toggleMicTest);
+
       onEvent('close-share-modal-btn', 'click', () => addClass('share-modal', 'hidden'));
       onEvent('close-fallback-btn', 'click', () => addClass('fallback-modal', 'hidden'));
       onEvent('close-preview-modal-btn', 'click', () => addClass('preview-modal', 'hidden'));
@@ -1190,7 +1269,6 @@
         if (input) { input.select(); document.execCommand('copy'); showToast("専用リンクのURLをコピーしました！"); }
       });
 
-      // 🚨 追加: 欠落していた設定モーダル（保存先固定）のイベント
       onEvent('open-settings-btn', 'click', () => {
         if (typeof getDirHandle === 'function') {
           getDirHandle().then(data => {
@@ -1327,20 +1405,58 @@
         addClass('save-video-action-area', 'hidden'); 
       });
 
+      // 🚨 修正: 画面録画時にマイクの音をミックスする処理を追加
       onEvent('start-btn', 'click', async () => {
         try {
           recordedChunks = []; isImportMode = false; isDemoMode = false;
           addClass('demo-simulator', 'hidden'); addClass('video-attach-prompt', 'hidden'); addClass('save-video-action-area', 'hidden');
           
+          if (typeof testMicStream !== 'undefined' && testMicStream) {
+             window.toggleMicTest(); // マイクテスト中なら自動で閉じる
+          }
+          
           screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
+          
+          try {
+             micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch(err) {
+             console.warn("Mic access denied or missing during recording", err);
+             micStream = null;
+          }
+
           const vp = getEl('video-preview');
           if (vp) { vp.srcObject = screenStream; vp.muted = true; vp.play(); }
           removeClass('video-preview', 'hidden'); addClass('video-placeholder', 'hidden');
           
-          mediaRecorder = new MediaRecorder(screenStream, { mimeType: 'video/webm; codecs=vp9' });
+          // AudioContextを使って画面の音声とマイクの音声を合成(ミックス)する
+          const tracks = [...screenStream.getVideoTracks()];
+          let audioContextForRecord = null;
+          let destNode = null;
+
+          if (screenStream.getAudioTracks().length > 0 || micStream) {
+              audioContextForRecord = new (window.AudioContext || window.webkitAudioContext)();
+              destNode = audioContextForRecord.createMediaStreamDestination();
+              
+              if (screenStream.getAudioTracks().length > 0) {
+                  const screenSource = audioContextForRecord.createMediaStreamSource(screenStream);
+                  screenSource.connect(destNode);
+              }
+              if (micStream) {
+                  const micSource = audioContextForRecord.createMediaStreamSource(micStream);
+                  micSource.connect(destNode);
+              }
+              tracks.push(...destNode.stream.getAudioTracks());
+          }
+
+          mixedStream = new MediaStream(tracks);
+          
+          mediaRecorder = new MediaRecorder(mixedStream, { mimeType: 'video/webm; codecs=vp9' });
           mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
           
           mediaRecorder.onstop = async () => {
+            if (audioContextForRecord) audioContextForRecord.close();
+            if (micStream) micStream.getTracks().forEach(t => t.stop());
+
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             activeVideoBlob = blob; 
             const objectUrl = URL.createObjectURL(blob);
@@ -1394,6 +1510,8 @@
         if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
         isRecording = false; stopTimer(); updateUIState(false);
         if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+        if (micStream) micStream.getTracks().forEach(t => t.stop());
+        if (mixedStream) mixedStream.getTracks().forEach(t => t.stop());
       });
 
       async function initFirebaseAsync() {
