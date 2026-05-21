@@ -92,7 +92,6 @@
         <!-- ナビゲーションタブ＆パスコード設定 -->
         <div class="flex items-center gap-3">
           <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <!-- 🚨 修正: HTML直接バインドで絶対にタブが切り替わるように設定 -->
             <button id="nav-workspace-btn" onclick="toggleTabs(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5">
               📝 ワークスペース
             </button>
@@ -221,7 +220,7 @@
             <button id="mic-toggle-btn" class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5">🎙️ マイク ON</button>
           </div>
           
-          <!-- 🚨 修正: 録画停止後に確実に出現する「動画の保存先指定」アクションエリア -->
+          <!-- 手動保存アクションエリア（デフォルト設定がない場合のみ出現） -->
           <div id="save-video-action-area" class="mt-1 hidden">
             <button id="save-video-action-btn" class="w-full p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 shadow-md transition-all">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
@@ -672,6 +671,31 @@
         };
       });
     }
+
+    // 共通の動画セットアップ関数
+    function setupVideoPlayer(blob, fileName) {
+      isImportMode = true;
+      activeVideoBlob = blob;
+      const objectUrl = URL.createObjectURL(blob);
+      currentVideoFileInfo.name = fileName;
+      currentVideoFileInfo.url = objectUrl;
+
+      const vp = getEl('video-preview');
+      if (vp) {
+        vp.srcObject = null;
+        vp.src = objectUrl;
+        vp.muted = false;
+        vp.controls = true;
+        vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); };
+      }
+      removeClass('video-preview', 'hidden');
+      addClass('video-placeholder', 'hidden');
+      addClass('video-attach-prompt', 'hidden');
+      
+      setText('timer-label', "PlaybackTime");
+      updateUIState(false);
+    }
+    window.setupVideoPlayer = setupVideoPlayer;
 
     function saveVideoBlob(id, blob) {
       return new Promise((resolve, reject) => {
@@ -1153,7 +1177,7 @@
     };
 
     // 🔄 ワークスペースにマニュアルをロードする（IndexedDBからの動画自動復元アタッチ機能連動）
-    window.loadManualToWorkspace = function(id) {
+    window.loadManualToWorkspace = async function(id) {
       const m = window.dbState.manuals.find(manual => manual.id === id);
       if (!m) return;
 
@@ -1164,30 +1188,44 @@
       setVal('workspace-manual-title', m.title);
       renderTimeline();
 
-      getVideoBlob(m.id).then(storedBlob => {
-        if (storedBlob) {
-          isImportMode = true;
-          activeVideoBlob = storedBlob;
-          const objectUrl = URL.createObjectURL(storedBlob);
-          currentVideoFileInfo.name = m.videoName || "saved_video.mp4";
-          currentVideoFileInfo.url = objectUrl;
+      let loadedFromLocal = false;
 
-          const vp = getEl('video-preview');
-          if (vp) {
-            vp.srcObject = null;
-            vp.src = objectUrl;
-            vp.muted = false;
-            vp.controls = true;
-            vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); };
+      // 1. ローカル同期フォルダからの直接読み込みを試行（究極の連携）
+      try {
+        if (m.videoName) {
+          const dirData = await getDirHandle();
+          if (dirData && dirData.handle) {
+            const hasPerm = await verifyPermission(dirData.handle, false);
+            if (hasPerm) {
+              const fileHandle = await dirData.handle.getFileHandle(m.videoName, { create: false });
+              const file = await fileHandle.getFile();
+              if (file) {
+                setupVideoPlayer(file, m.videoName);
+                showToast(`📁 ドライブフォルダから直接動画『${m.videoName}』を自動ロードしました！`);
+                loadedFromLocal = true;
+              }
+            }
           }
-          removeClass('video-preview', 'hidden');
-          addClass('video-placeholder', 'hidden');
-          addClass('video-attach-prompt', 'hidden');
-          
-          setText('timer-label', "PlaybackTime");
-          updateUIState(false);
-          showToast("💾 保管動画を自動ロードして再生を開始しました！");
-        } else if (m.videoUrl) {
+        }
+      } catch (err) {
+        console.warn("ローカルフォルダからの直接ロードはスキップされました:", err);
+      }
+
+      // 2. 失敗した場合はIndexedDBから復元
+      if (!loadedFromLocal) {
+        try {
+          const storedBlob = await getVideoBlob(m.id);
+          if (storedBlob) {
+            setupVideoPlayer(storedBlob, m.videoName || "saved_video.mp4");
+            showToast("💾 IndexedDBから保管動画を自動ロードして再生を開始しました！");
+            loadedFromLocal = true;
+          }
+        } catch(e) { console.warn("IndexedDB load error:", e); }
+      }
+
+      // 3. 全ての自動読み込みが不可能な場合のフォールバック
+      if (!loadedFromLocal) {
+        if (m.videoUrl) {
           isImportMode = true;
           const vp = getEl('video-preview');
           if (vp) {
@@ -1217,16 +1255,10 @@
           addClass('video-attach-prompt', 'hidden');
           updateUIState(false);
         }
-      }).catch(err => {
-        console.error("IndexedDBロードに失敗、フォールバックアタッチを起動します:", err);
-        addClass('video-preview', 'hidden');
-        removeClass('video-placeholder', 'hidden');
-        addClass('video-attach-prompt', 'hidden');
-        updateUIState(false);
-      });
+      }
 
       removeClass('save-library-banner', 'hidden');
-      toggleTabs(true); // バグ修正: ワークスペースへ確実に遷移する
+      toggleTabs(true); // ワークスペースへ確実に遷移する
     };
 
     // Notion連携埋め込み用ポップアップ呼び出し
@@ -1239,6 +1271,7 @@
       const simulatedShareUrl = `${baseAppUrl}?id=${m.id}&p=${systemSettings.passcode}`;
       setVal('share-url-input', simulatedShareUrl);
 
+      // Notionコピペトグルテキストの生成
       let notionMd = `### 📄 ${m.title}\n`;
       notionMd += `*作成日: ${m.createdAt}*\n\n`;
       notionMd += `> 💡 **ManuReco タイムスタンプガイド:** 各項目に付与されたタイムスタンプ（例 \`[01:12]\`）は、動画マニュアルの再生時間を指しています。\n\n`;
@@ -1510,19 +1543,43 @@
           mediaRecorder = new MediaRecorder(screenStream, { mimeType: 'video/webm; codecs=vp9' });
           mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
           
-          mediaRecorder.onstop = () => {
+          mediaRecorder.onstop = async () => {
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             activeVideoBlob = blob; 
             const objectUrl = URL.createObjectURL(blob);
-            currentVideoFileInfo.name = "Manual_Recording_" + getFormattedDate() + ".webm";
+            const defaultFileName = "Manual_Recording_" + getFormattedDate() + ".webm";
+            
+            currentVideoFileInfo.name = defaultFileName;
             currentVideoFileInfo.url = objectUrl;
             currentVideoFileInfo.size = blob.size;
 
             if (vp) { vp.srcObject = null; vp.src = objectUrl; vp.controls = true; vp.muted = false; }
             
-            removeClass('save-video-action-area', 'hidden'); // 保存アクションボタンを表示
+            // 🚨 デフォルトフォルダでの自動保存を試行
+            let isAutoSaved = false;
+            try {
+              const dirData = await getDirHandle();
+              if (dirData && dirData.handle) {
+                const hasPerm = await verifyPermission(dirData.handle, true);
+                if (hasPerm) {
+                  const fileHandle = await dirData.handle.getFileHandle(defaultFileName, { create: true });
+                  const writable = await fileHandle.createWritable();
+                  await writable.write(blob);
+                  await writable.close();
+                  setVal('modal-video-name', defaultFileName);
+                  showToast(`📁 録画完了。指定フォルダ「${dirData.name}」へ自動保存しました！`);
+                  isAutoSaved = true;
+                }
+              }
+            } catch(e) { console.warn("Auto save failed", e); }
+            
             removeClass('save-library-banner', 'hidden');
-            showToast("収録完了。上の「保存先を指定する」ボタンを押して動画をPCに保存してください。");
+
+            if (!isAutoSaved) {
+              // 自動保存されなかった場合はアクションボタンを表示して手動保存を促す
+              removeClass('save-video-action-area', 'hidden');
+              showToast("収録完了。上の「保存先を指定する」ボタンを押して動画をPCに保存してください。");
+            }
           };
 
           mediaRecorder.start(1000);
