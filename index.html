@@ -108,7 +108,7 @@
       <button onclick="document.getElementById('sandbox-banner').remove()" class="text-amber-500 hover:text-amber-800 font-bold px-2 text-sm">&times;</button>
     </div>
 
-    <!-- メメインレイアウトコンテナ -->
+    <!-- メインレイアウトコンテナ -->
     <div class="flex-1 max-w-7xl w-full mx-auto flex flex-col lg:flex-row gap-6 p-4 md:p-6">
       
       <!-- ========================================== -->
@@ -405,6 +405,14 @@
           <input type="text" id="settings-passcode-input" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono tracking-widest text-center" placeholder="1234">
           <p class="text-[10px] text-slate-400 mt-1">※パスコードを変更すると、次回アクセス時から新しいパスコードが必要になります。</p>
         </div>
+        <div class="mt-4 pt-4 border-t border-slate-100">
+          <label class="block font-bold text-slate-700 mb-1">録画動画のデフォルト保存先 (同期フォルダ等)</label>
+          <div class="flex items-center gap-2">
+            <input type="text" id="settings-dir-name" readonly class="flex-1 border bg-slate-50 text-slate-500 rounded-xl p-2 focus:outline-none text-[10px]" placeholder="未設定 (毎回ダイアログ表示)">
+            <button id="select-dir-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all shadow-sm">フォルダ選択</button>
+          </div>
+          <p class="text-[9px] text-slate-400 mt-1">※設定すると、録画終了時にこのフォルダへ動画が自動・直接保存されます。</p>
+        </div>
       </div>
       <div class="flex justify-end gap-2 text-xs font-semibold">
         <button id="close-settings-btn" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl">閉じる</button>
@@ -451,7 +459,6 @@
       return document.getElementById(id);
     }
 
-    // 🚨 修正：再追加された安全なDOM操作ユーティリティ
     function addClass(id, className) {
       const el = getEl(id);
       if (el && className) {
@@ -622,19 +629,22 @@
     }
     window.showToast = showToast; // 明示的にグローバルスコープへ展開
 
-
     // --- 📦 IndexedDB 動画ストレージ管理 (ローカル永続動画再生用) ---
     const DB_NAME = 'manureco_videos_db';
     const STORE_NAME = 'videos';
+    const SETTINGS_STORE = 'settings';
     let indexedDbInstance = null;
 
     function initIndexedDB() {
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
+        const request = indexedDB.open(DB_NAME, 2);
         request.onupgradeneeded = (e) => {
           const dbInstance = e.target.result;
           if (!dbInstance.objectStoreNames.contains(STORE_NAME)) {
             dbInstance.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          }
+          if (!dbInstance.objectStoreNames.contains(SETTINGS_STORE)) {
+            dbInstance.createObjectStore(SETTINGS_STORE, { keyPath: 'id' });
           }
         };
         request.onsuccess = (e) => {
@@ -648,7 +658,6 @@
       });
     }
 
-    // 動画Blobの保存
     function saveVideoBlob(id, blob) {
       return new Promise((resolve, reject) => {
         if (!indexedDbInstance) {
@@ -663,7 +672,6 @@
       });
     }
 
-    // 動画Blobの取得
     function getVideoBlob(id) {
       return new Promise((resolve, reject) => {
         if (!indexedDbInstance) {
@@ -680,7 +688,6 @@
       });
     }
 
-    // 動画Blobの削除
     function deleteVideoBlob(id) {
       return new Promise((resolve, reject) => {
         if (!indexedDbInstance) {
@@ -695,6 +702,37 @@
       });
     }
 
+    // デフォルト保存先ディレクトリハンドルの保存と取得
+    function saveDirHandle(handle) {
+      return new Promise((resolve, reject) => {
+        if (!indexedDbInstance) { reject("IndexedDB Error"); return; }
+        const tx = indexedDbInstance.transaction([SETTINGS_STORE], 'readwrite');
+        const store = tx.objectStore(SETTINGS_STORE);
+        const req = store.put({ id: 'default_dir', handle: handle, name: handle.name });
+        req.onsuccess = () => resolve(true);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    function getDirHandle() {
+      return new Promise((resolve, reject) => {
+        if (!indexedDbInstance) { resolve(null); return; }
+        const tx = indexedDbInstance.transaction([SETTINGS_STORE], 'readonly');
+        const store = tx.objectStore(SETTINGS_STORE);
+        const req = store.get('default_dir');
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    // ディレクトリハンドルの権限検証
+    async function verifyPermission(fileHandle, readWrite) {
+      const opts = {};
+      if (readWrite) opts.mode = 'readwrite';
+      if ((await fileHandle.queryPermission(opts)) === 'granted') return true;
+      if ((await fileHandle.requestPermission(opts)) === 'granted') return true;
+      return false;
+    }
 
     // ビデオ要素の安全制御
     function playVideo() {
@@ -784,6 +822,16 @@
     // --- 設定（パスコード変更）モーダル ---
     onEvent('open-settings-btn', 'click', () => {
       setVal('settings-passcode-input', systemSettings.passcode);
+      
+      // デフォルト保存先名の読み込み
+      getDirHandle().then(data => {
+        if (data && data.name) {
+          setVal('settings-dir-name', '📁 ' + data.name);
+        } else {
+          setVal('settings-dir-name', '');
+        }
+      }).catch(e => console.warn(e));
+
       removeClass('settings-modal', 'hidden');
     });
     onEvent('close-settings-btn', 'click', () => addClass('settings-modal', 'hidden'));
@@ -794,6 +842,22 @@
       localStorage.setItem('manureco_settings', JSON.stringify(systemSettings));
       addClass('settings-modal', 'hidden');
       showToast("🔐 パスコード設定を新しく保存しました。");
+    });
+
+    // フォルダ選択処理
+    onEvent('select-dir-btn', 'click', async () => {
+      if (!('showDirectoryPicker' in window)) {
+        alert("お使いのブラウザはフォルダの固定機能（File System Access API）をサポートしていません。ChromeまたはEdgeをご利用ください。");
+        return;
+      }
+      try {
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        await saveDirHandle(dirHandle);
+        setVal('settings-dir-name', '📁 ' + dirHandle.name);
+        showToast("デフォルト保存先フォルダを設定しました！");
+      } catch (err) {
+        console.warn("ディレクトリ選択がキャンセル、またはエラー:", err);
+      }
     });
 
     // --- 📂 データベース(LocalStorage)状態管理 ---
@@ -1116,10 +1180,65 @@
       }
     }
 
-    // --- 画面録画 ---
+    // 🚨 画面録画データをGoogleドライブ等のローカル同期フォルダに直接保存する処理
+    async function saveCapturedVideoDirectly(blob, defaultName) {
+      // 1. デフォルトフォルダが設定されているか確認し、直接サイレント保存を試みる
+      try {
+        const dirData = await getDirHandle();
+        if (dirData && dirData.handle) {
+          const hasPerm = await verifyPermission(dirData.handle, true);
+          if (hasPerm) {
+            const fileHandle = await dirData.handle.getFileHandle(defaultName, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            
+            showToast(`📁 指定フォルダ「${dirData.name}」へ直接自動保存しました！`);
+            return dirData.name + "/" + defaultName; // 推測されるパスや名前を返す
+          }
+        }
+      } catch (err) {
+        console.warn("デフォルトフォルダへの自動保存に失敗しました。通常の保存ダイアログへフォールバックします。", err);
+      }
+
+      // 2. デフォルトフォルダがない、またはエラーになった場合は従来のダイアログ表示へ
+      if ('showSaveFilePicker' in window) {
+        try {
+          const options = {
+            suggestedName: defaultName,
+            types: [{ description: 'Video File', accept: { 'video/webm': ['.webm'] } }]
+          };
+          // フォルダ選択＆ファイル命名用のOS標準セーブダイアログを開く
+          const fileHandle = await window.showSaveFilePicker(options);
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          
+          showToast("📁 PCの指定フォルダに動画を直接書き出しました！");
+          return fileHandle.name;
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            console.warn("直接保存エラー。通常ダウンロードに切り替えます:", err);
+          }
+        }
+      }
+      
+      // 3. 非対応ブラウザ、またはキャンセル時のフォールバック（通常のBlobダウンロード）
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = defaultName;
+      a.click();
+      showToast("📥 通常ダウンロードを開始しました");
+      return a.download;
+    }
+
+    // --- 🚨要件①・③ 完全対応: 画面録画とブラウザ上での確実な動画実体化・再閲覧機能 ---
     onEvent('start-btn', 'click', async () => {
       try {
-        recordedChunks = []; isImportMode = false; isDemoMode = false;
+        recordedChunks = []; 
+        isImportMode = false; 
+        isDemoMode = false;
         addClass('demo-simulator', 'hidden');
         addClass('video-attach-prompt', 'hidden');
         
@@ -1128,26 +1247,80 @@
         const vp = getEl('video-preview');
         if (vp) {
           vp.srcObject = screenStream;
-          vp.muted = true;
+          vp.muted = true; // 録画中のハウリング防止
+          vp.play();
         }
         removeClass('video-preview', 'hidden');
         addClass('video-placeholder', 'hidden');
         
-        isRecording = true; startTimer(); updateUIState(true);
-        currentVideoFileInfo.name = "Screen_Recording_" + getFormattedDate() + ".webm";
+        // 録画エンジンの完全初期化
+        mediaRecorder = new MediaRecorder(screenStream, { mimeType: 'video/webm; codecs=vp9' });
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            recordedChunks.push(e.data);
+          }
+        };
+        
+        // 録画停止時の完全な動画生成プロセス
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          activeVideoBlob = blob; // IndexedDB保存用＆再閲覧用に動画実体をセット
+          
+          const objectUrl = URL.createObjectURL(blob);
+          const defaultFileName = "Manual_Recording_" + getFormattedDate() + ".webm";
+          
+          currentVideoFileInfo.name = defaultFileName;
+          currentVideoFileInfo.url = objectUrl;
+          currentVideoFileInfo.size = blob.size;
+
+          // 要件③: ブラウザ上で再度マニュアル動画を閲覧できるようにプレビューをライブから録画データに切り替え
+          if (vp) {
+            vp.srcObject = null;
+            vp.src = objectUrl;
+            vp.controls = true;
+            vp.muted = false; // 再生時は音を出す
+          }
+          
+          // 要件②: 録画停止後、手戻りがないようにOSの保存ダイアログ(または固定フォルダ)を開き保存を促す
+          const savedName = await saveCapturedVideoDirectly(blob, defaultFileName);
+          if (savedName) {
+            setVal('modal-video-name', savedName);
+            currentVideoFileInfo.name = savedName;
+          } else {
+             setVal('modal-video-name', currentVideoFileInfo.name);
+          }
+          
+          removeClass('save-library-banner', 'hidden');
+          showToast("収録完了。ブラウザ上で再度動画を閲覧・確認できるようになりました！");
+        };
+
+        // 録画の開始
+        mediaRecorder.start(1000);
+        
+        isRecording = true; 
+        startTimer(); 
+        updateUIState(true);
+        currentVideoFileInfo.name = "Recording_" + getFormattedDate() + ".webm";
+        
+        currentTimelineData = []; // 録画開始時にタイムラインを初期化
         addTimelineItem(0, "マニュアル動画のキャプチャ収録を開始しました。", "system");
-        removeClass('save-library-banner', 'hidden');
+        
       } catch (err) {
-        console.warn("Screen Capture Restricted. Open Fallback UI.");
+        console.warn("Screen Capture Restricted. Open Fallback UI.", err);
         removeClass('fallback-modal', 'hidden');
         resetToInitial();
       }
     });
 
     onEvent('stop-btn', 'click', () => {
-      isRecording = false; stopTimer(); updateUIState(false);
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      isRecording = false; 
+      stopTimer(); 
+      updateUIState(false);
       if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-      showToast("収録を完了しました。保管用バナーよりライブラリにセーブできます。");
+      showToast("動画の書き出しと保存準備を行っています...");
     });
 
     // --- 各種状態フラグの下でDOM要素取得 ---
@@ -1245,7 +1418,7 @@
       renderTimeline();
     });
 
-    // タグ選択のイベントバインド（Null安全制御）
+    // タグ選択のイベントバインド
     if (tagButtons && tagButtons.length > 0) {
       tagButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1286,7 +1459,7 @@
         timeline: [...currentTimelineData]
       };
 
-      // 🚨 IndexedDBへ動画Blobデータの永続保管処理を実行
+      // IndexedDBへ動画Blobデータの永続保管処理を実行
       if (activeVideoBlob) {
         saveVideoBlob(newManual.id, activeVideoBlob)
           .then(() => console.log("IndexedDBに動画Blobを永続保存しました。"))
@@ -1354,7 +1527,7 @@
       const mgc = getEl('manuals-grid-container');
       if (mgc) {
         mgc.innerHTML = filteredManuals.map(m => {
-          let videoBadgeStr = m.videoUrl ? '🌐 外部URL' : m.videoName ? '📼 要アタッチ' : '⚠️ 動画なし';
+          let videoBadgeStr = m.videoUrl ? '🌐 外部URL' : m.videoName ? '📼 要アタッチ/復元可' : '⚠️ 動画なし';
           let badgeColor = m.videoUrl ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : m.videoName ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-slate-100 text-slate-500 border-slate-200';
           return `
             <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[144px]">
@@ -1372,7 +1545,7 @@
               
               <div class="pt-3 border-t border-slate-100 flex gap-1.5 mt-2">
                 <button onclick="loadManualToWorkspace('${m.id}')" class="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold text-[10px] py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1">
-                  ✏️ 再編集
+                  ✏️ 復元して再閲覧・編集
                 </button>
                 <button onclick="openNotionShare('${m.id}', event)" class="flex-1 bg-slate-900 text-white font-bold text-[10px] py-1.5 px-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-1">
                   🚀 Notion連携
@@ -1412,7 +1585,7 @@
       resetToInitial();
       renderTimeline();
 
-      // 🚨 IndexedDBから動画Blobデータの自動復元を非同期実行
+      // IndexedDBから動画Blobデータの自動復元を非同期実行
       getVideoBlob(m.id).then(storedBlob => {
         if (storedBlob) {
           isImportMode = true;
@@ -1478,7 +1651,6 @@
         }
       }).catch(err => {
         console.error("IndexedDBロードに失敗、フォールバックアタッチを起動します:", err);
-        // 万が一エラーが出た場合はアタッチ/URLルートへ
         addClass('video-preview', 'hidden');
         removeClass('video-placeholder', 'hidden');
         addClass('video-attach-prompt', 'hidden');
@@ -1641,65 +1813,6 @@
       removeClass('video-placeholder', 'hidden');
       addClass('video-attach-prompt', 'hidden');
       addClass('recording-overlay', 'opacity-0');
-    }
-
-    // 要素オブジェクトのプロパティ設定ヘルパー
-    function setProp(id, propName, value) {
-      const el = getEl(id);
-      if (el) el[propName] = value;
-    }
-
-    // 🚨 画面録画データをGoogleドライブ等のローカル同期フォルダに「名前を直接指定して保存」する新処理
-    async function saveCapturedVideoDirectly(blob) {
-      // ブラウザがFile System Access APIをサポートしているか確認
-      if ('showSaveFilePicker' in window) {
-        try {
-          const options = {
-            suggestedName: `Manual_Video_${getFormattedDate()}.webm`,
-            types: [{
-              description: 'Video File',
-              accept: { 'video/webm': ['.webm'] }
-            }]
-          };
-          // フォルダ選択＆ファイル命名用のOS標準セーブダイアログを開く
-          const fileHandle = await window.showSaveFilePicker(options);
-          const writable = await fileHandle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-          
-          showToast("📁 同期フォルダ（Googleドライブ等）に直接動画を書き出しました！");
-          return fileHandle.name;
-        } catch (err) {
-          // ユーザーによるキャンセル、または書き込みエラー時
-          if (err.name !== 'AbortError') {
-            console.warn("直接保存エラー。通常ダウンロードに切り替えます:", err);
-          }
-        }
-      }
-      
-      // 非対応ブラウザ、またはキャンセル時のフォールバック（通常のBlobダウンロード）
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Manual_Video_${getFormattedDate()}.webm`;
-      a.click();
-      showToast("📥 通常ダウンロードを開始しました（動画ファイルをドライブに移動させてください）");
-      return a.download;
-    }
-
-    // 保存ボタンイベントのアップグレード
-    const dlVidBtn = getEl('download-video-btn');
-    if (dlVidBtn) {
-      dlVidBtn.onclick = async () => {
-        if (recordedChunks.length === 0) {
-          showToast("保存する録画データがありません。");
-          return;
-        }
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
-        const savedName = await saveCapturedVideoDirectly(blob);
-        // 保存したファイル名を設定モーダル用インプットに連動
-        setVal('modal-video-name', savedName);
-      };
     }
 
     // セッション認証＆初期ロード実行
