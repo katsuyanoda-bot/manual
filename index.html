@@ -267,10 +267,11 @@
           </div>
 
           <div class="flex-1 overflow-y-auto p-4 space-y-4 max-h-[340px] bg-slate-50/50 relative" id="timeline-container">
+            <!-- 🚨 修正: プレースホルダーのショートカット説明を Shift+Enter に変更 -->
             <div id="timeline-placeholder" class="text-center py-10 text-slate-400 text-xs flex flex-col items-center justify-center h-full">
               <div class="mb-3 text-3xl opacity-50">⚡️</div>
               <p class="font-bold text-slate-600 mb-1.5">爆速インライン入力に対応！</p>
-              <p class="leading-relaxed">録画・再生中にキーボードの<br><kbd class="bg-white border border-slate-200 text-slate-700 px-2 py-1 rounded-md font-mono shadow-sm mx-1">Enter</kbd>キーを押すだけで、<br>その瞬間の時間にステップを追加できます。</p>
+              <p class="leading-relaxed">録画・再生中にキーボードの<br><kbd class="bg-white border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded-md font-mono shadow-sm mx-0.5">Shift</kbd>+<kbd class="bg-white border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded-md font-mono shadow-sm mx-0.5">Enter</kbd>キーを押すだけで、<br>その瞬間の時間にステップを追加できます。</p>
             </div>
           </div>
 
@@ -787,7 +788,6 @@
     let currentUser = null;
     let teamManuals = []; 
 
-    // 🚨 修正: フォルダを階層構造（ツリー）に対応できるように parentId を追加
     window.dbState = {
       folders: [
         { id: 'f-1', name: '📁 IT・システム操作', parentId: null },
@@ -838,7 +838,6 @@
         window.firebaseDb.onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             window.dbState = docSnap.data();
-            // 古いデータ構造（f-allが含まれている等）へのパッチ
             if (!window.dbState.folders) window.dbState.folders = [];
             window.dbState.folders = window.dbState.folders.filter(f => f.id !== 'f-all');
           } else {
@@ -942,6 +941,65 @@
     let currentTimelineData = [];
     let activeEditingManualId = null;
     let activeVideoBlob = null;
+
+    // --- 🚨 ドラッグ＆ドロップ機能 (フォルダ＆マニュアル) ---
+    window.handleDragStart = function(e, type, id) {
+      e.stopPropagation();
+      e.dataTransfer.setData('text/plain', JSON.stringify({ type, id }));
+      e.dataTransfer.effectAllowed = 'move';
+    };
+
+    window.handleDragOver = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+      e.currentTarget.classList.add('bg-brand-100'); // Hover表示
+    };
+
+    window.handleDragLeave = function(e) {
+      e.stopPropagation();
+      e.currentTarget.classList.remove('bg-brand-100');
+    };
+
+    window.handleDrop = function(e, targetFolderId) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.currentTarget.classList.remove('bg-brand-100');
+      
+      try {
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        if (data.type === 'folder') {
+          if (data.id === targetFolderId) return; 
+          
+          // 親子関係のループを簡易チェック
+          let current = targetFolderId;
+          while(current && current !== 'f-all') {
+             if (current === data.id) {
+                showToast("⚠️ そのフォルダの中には移動できません");
+                return;
+             }
+             const p = window.dbState.folders.find(f => f.id === current);
+             current = p ? p.parentId : null;
+          }
+
+          const folderIndex = window.dbState.folders.findIndex(f => f.id === data.id);
+          if (folderIndex !== -1) {
+            window.dbState.folders[folderIndex].parentId = targetFolderId === 'f-all' ? null : targetFolderId;
+            saveDatabase();
+            renderLibrary();
+            showToast("📁 フォルダを移動しました");
+          }
+        } else if (data.type === 'manual') {
+          const manualIndex = window.dbState.manuals.findIndex(m => m.id === data.id);
+          if (manualIndex !== -1) {
+             window.dbState.manuals[manualIndex].folderId = targetFolderId === 'f-all' ? null : targetFolderId;
+             saveDatabase();
+             renderLibrary();
+             showToast("📄 マニュアルを移動しました");
+          }
+        }
+      } catch (err) {}
+    };
 
     // --- 🎙️ マイクテスト機能 ---
     let testMicStream = null;
@@ -1099,13 +1157,14 @@
         else if (item.type === 'step') { iconHtml = `<span class="text-brand-600">⚙️ ステップ ${stepCount}</span>`; stepCount++; }
         else iconHtml = '📝 メモ';
 
+        // 🚨 修正: ⏱️ジャンプボタンを大きく押しやすくし、時間入力欄により余裕を持たせたUIに変更
         row.innerHTML = `
           <div class="absolute -left-[5.5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 group-hover:bg-brand-400 transition-colors"></div>
           <div class="flex-1 flex flex-col gap-1.5">
             <div class="flex items-center gap-2">
-              <div class="flex items-center bg-brand-50 border border-brand-200 rounded px-1 shadow-sm hover:shadow transition-shadow">
-                <button class="stamp-jump hover:bg-brand-200 p-0.5 rounded cursor-pointer transition-colors" data-time="${item.time}" title="この時間にジャンプ">⏱️</button>
-                <input type="text" class="w-10 bg-transparent font-mono text-[10px] text-brand-700 font-bold focus:outline-none focus:border-b border-brand-500 text-center edit-time-node" data-id="${item.id}" value="${formatTime(item.time)}" title="クリックして時間を編集">
+              <div class="flex items-center bg-brand-50 border border-brand-200 rounded-lg shadow-sm hover:shadow transition-shadow overflow-hidden">
+                <button class="stamp-jump hover:bg-brand-200 px-2.5 py-1.5 text-base cursor-pointer transition-colors bg-white border-r border-brand-100" data-time="${item.time}" title="この時間にジャンプ">⏱️</button>
+                <input type="text" class="w-12 bg-transparent font-mono text-xs text-brand-700 font-bold focus:outline-none focus:bg-white text-center edit-time-node px-1" data-id="${item.id}" value="${formatTime(item.time)}" title="クリックして時間を編集">
               </div>
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">${iconHtml}</span>
             </div>
@@ -1123,7 +1182,7 @@
         if (isRecording || hasVideoSource() || isDemoMode) {
           const addBtnRow = document.createElement('div');
           addBtnRow.className = 'inline-add-btn mt-2 p-3 border-2 border-dashed border-slate-200 rounded-xl text-center text-slate-400 hover:text-brand-600 hover:border-brand-400 hover:bg-brand-50 cursor-pointer transition-all text-xs font-bold flex flex-col items-center justify-center gap-1';
-          addBtnRow.innerHTML = `<span class="text-lg leading-none">+</span><span>現在の時間で新しいステップを追加</span><span class="text-[9px] font-normal text-slate-400">キーボードの <kbd class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded shadow-sm">Enter</kbd> でも追加可能</span>`;
+          addBtnRow.innerHTML = `<span class="text-lg leading-none">+</span><span>現在の時間で新しいステップを追加</span><span class="text-[9px] font-normal text-slate-400">キーボードの <kbd class="bg-slate-200 text-slate-600 px-1 py-0.5 rounded shadow-sm">Shift + Enter</kbd> でも追加可能</span>`;
           addBtnRow.onclick = window.createInlineStep;
           tc.appendChild(addBtnRow);
         }
@@ -1209,28 +1268,26 @@
     }
     window.sendMemo = sendMemo;
 
-    // 🚨 修正: フォルダの階層（ツリー）構造のレンダリング再帰関数
     function renderFolderTree(folders, sourceManuals, parentId = null, depth = 1) {
       let treeHtml = '';
       const children = folders.filter(f => (f.parentId || null) === parentId);
       children.forEach(f => {
         const isSelected = f.id === currentSelectedFolderId;
         const count = sourceManuals.filter(m => m.folderId === f.id).length;
-        const padding = depth * 12; // 階層に応じたインデント
+        const padding = depth * 12; 
         
+        // 🚨 追加: フォルダドラッグ＆ドロップ対応
         treeHtml += `
-          <div class="flex justify-between items-center group py-1.5 pr-2 rounded-lg cursor-pointer font-semibold transition-all ${isSelected ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" style="padding-left: ${padding + 8}px" onclick="window.selectFolder('${f.id}')">
+          <div draggable="true" ondragstart="window.handleDragStart(event, 'folder', '${f.id}')" ondragover="window.handleDragOver(event)" ondragleave="window.handleDragLeave(event)" ondrop="window.handleDrop(event, '${f.id}')" class="flex justify-between items-center group py-2 pr-2 rounded-lg cursor-pointer font-semibold transition-all border border-transparent ${isSelected ? 'bg-brand-50 text-brand-700 font-bold border-brand-200' : 'hover:bg-slate-100 text-slate-600'}" style="padding-left: ${padding + 8}px" onclick="window.selectFolder('${f.id}')">
             <span class="truncate flex items-center gap-1.5"><span class="text-[10px] opacity-50 ${depth===1?'hidden':''} text-slate-400">└</span>${f.name}</span>
             <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full">${count}</span>
           </div>
         `;
-        // 子フォルダを再帰的に描画
         treeHtml += renderFolderTree(folders, sourceManuals, f.id, depth + 1);
       });
       return treeHtml;
     }
 
-    // 📁 ライブラリ描画コア
     function renderLibrary(mode = currentView) {
       const isTeam = mode === 'team';
       const sourceManuals = isTeam ? teamManuals : window.dbState.manuals;
@@ -1246,10 +1303,9 @@
          removeClass('folder-sidebar', 'hidden');
          setText('current-folder-desc', '保管中の時間連動型WEBマニュアル下書き一覧');
          
-         // 🚨 修正: フォルダツリーの描画
          if (flc) {
           let html = `
-            <div class="flex justify-between items-center group py-1.5 px-2 mb-1 rounded-lg cursor-pointer font-semibold transition-all ${currentSelectedFolderId === 'f-all' ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" onclick="window.selectFolder('f-all')">
+            <div ondragover="window.handleDragOver(event)" ondragleave="window.handleDragLeave(event)" ondrop="window.handleDrop(event, 'f-all')" class="flex justify-between items-center group py-2 px-2 mb-1 rounded-lg cursor-pointer font-semibold transition-all border border-transparent ${currentSelectedFolderId === 'f-all' ? 'bg-brand-50 text-brand-700 font-bold border-brand-200' : 'hover:bg-slate-100 text-slate-600'}" onclick="window.selectFolder('f-all')">
               <span class="truncate">📂 すべてのマニュアル</span>
               <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full">${sourceManuals.length}</span>
             </div>
@@ -1283,8 +1339,9 @@
           let actionLabel = isTeam ? '📖 開いて閲覧' : '✏️ 復元して再編集';
           let deleteBtnHtml = (!isTeam || (currentUser && m.authorUid === currentUser.uid)) ? `<button onclick="window.deleteManual('${m.id}', event)" class="text-slate-400 hover:text-red-500 text-xs">&times; 削除</button>` : '';
 
+          // 🚨 追加: マニュアルドラッグ＆ドロップ対応
           return `
-            <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[144px]">
+            <div ${isTeam ? '' : `draggable="true" ondragstart="window.handleDragStart(event, 'manual', '${m.id}')"`} class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[144px] ${isTeam ? '' : 'cursor-grab active:cursor-grabbing'}">
               <div>
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-[9px] text-slate-400 font-mono">📅 ${m.createdAt}</span>
@@ -1512,16 +1569,18 @@
     // 全イベントリスナーの登録と初期化 (DOM Load後)
     // ==========================================
     window.onload = () => {
+      // 🚨 グローバルショートカットの登録 (爆速インライン入力)
       document.addEventListener('keydown', (e) => {
         if (!isRecording && !hasVideoSource() && !isDemoMode) return;
 
         const targetTag = e.target.tagName.toLowerCase();
         const isInput = targetTag === 'input' || targetTag === 'textarea';
 
-        if (e.key === 'Enter' && !isInput && !e.ctrlKey && !e.metaKey) {
+        // 🚨 修正: Shift + Enter をショートカットに設定
+        if (e.key === 'Enter' && e.shiftKey && !isInput) {
           e.preventDefault(); window.createInlineStep();
         }
-        if (e.key === 'Enter' && isInput && (e.ctrlKey || e.metaKey)) {
+        if (e.key === 'Enter' && e.shiftKey && isInput) {
           e.preventDefault(); e.target.blur(); window.createInlineStep();
         }
       });
@@ -1609,7 +1668,6 @@
         });
       }
 
-      // 🚨 修正: フォルダの階層構造対応 (セレクトボックスの構築)
       function buildFolderOptions(folders, parentId = null, depth = 0) {
         let html = '';
         const children = folders.filter(f => (f.parentId || null) === parentId);
@@ -1625,7 +1683,6 @@
         const currentWorkspaceTitle = getVal('workspace-manual-title').trim();
         setVal('modal-manual-title', currentWorkspaceTitle || (isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書"));
         
-        // 階層的なプルダウンを生成
         setHtml('modal-manual-folder', buildFolderOptions(window.dbState.folders, null, 0));
         
         setVal('modal-video-name', currentVideoFileInfo.name || "アタッチ動画なし");
@@ -1642,7 +1699,6 @@
           if (existing && existing.isShared === false) { getEl('modal-is-shared-no').checked = true; } 
           else { getEl('modal-is-shared-yes').checked = true; }
         } else {
-          // 🚨 デフォルトをチーム共有にする
           getEl('modal-is-shared-yes').checked = true;
         }
 
@@ -1716,7 +1772,6 @@
         window.switchView(isShared ? 'team' : 'library'); 
       });
 
-      // 🚨 修正: フォルダ追加時に「選択中のフォルダの下」に作る処理
       onEvent('add-folder-btn', 'click', () => {
         let parentName = "一番上の階層";
         let parentId = null;
