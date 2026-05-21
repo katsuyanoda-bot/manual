@@ -57,7 +57,7 @@
         <p class="text-sm text-slate-500 mt-2">マニュアルをクラウドに安全に同期・保管するため、Googleアカウントでログインしてください。</p>
       </div>
       <div class="space-y-3 mt-2">
-        <button id="google-login-btn" onclick="handleGoogleLogin()" class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-3.5 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-3">
+        <button id="google-login-btn" onclick="window.handleGoogleLogin()" class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-3.5 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-3">
           <svg class="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -92,10 +92,10 @@
         <!-- ナビゲーションタブ＆パスコード設定 -->
         <div class="flex items-center gap-3">
           <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button id="nav-workspace-btn" onclick="toggleTabs(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5">
+            <button id="nav-workspace-btn" onclick="window.toggleTabs(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5">
               📝 ワークスペース
             </button>
-            <button id="nav-library-btn" onclick="toggleTabs(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
+            <button id="nav-library-btn" onclick="window.toggleTabs(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
               📁 保管ライブラリ (<span id="library-count-badge">0</span>)
             </button>
           </div>
@@ -240,7 +240,7 @@
           </div>
         </div>
 
-        <!-- 右側：タイムライン＆メモエリア (手順書レベルアップ版) -->
+        <!-- 右側：タイムライン＆メモエリア -->
         <div class="lg:w-5/12 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           
           <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex flex-col gap-2.5">
@@ -337,7 +337,6 @@
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Googleドライブ共有URL または ローカル保存先パス (推奨)</label>
-          <!-- 🚨 修正: 自動補完用のボタンを設置 -->
           <div class="flex items-center gap-2">
             <input type="text" id="modal-video-url" class="flex-1 w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="例: G:\マイドライブ\Manuals\video.webm">
             <button id="auto-fill-drive-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-3 py-2.5 rounded-xl whitespace-nowrap transition-all shadow-sm text-[10px] leading-tight">設定から<br>パスを補完</button>
@@ -356,50 +355,35 @@
   <div id="share-modal" class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-        <h3 class="font-bold text-slate-900 text-base flex items-center gap-1.5">🚀 Notionに完璧にマニュアルを貼る方法</h3>
+        <h3 class="font-bold text-slate-900 text-base flex items-center gap-1.5">🚀 Notionへマニュアルを追加</h3>
         <button id="close-share-modal-btn" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
-
-      <div class="flex border-b border-slate-200 text-xs">
-        <button id="share-tab-copy" class="flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center">パターンA：Notionに直接ペースト（一番簡単！）</button>
-        <button id="share-tab-embed" class="flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center">パターンB：Notion内にこのアプリを埋め込む</button>
-      </div>
-
-      <div id="share-panel-copy" class="space-y-4 text-xs">
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 leading-relaxed text-slate-600">
-          現在、クラウドでホストしているため、Notionにも簡単にアプリを埋め込めますが、<strong>最も手軽なのは以下のNotion最適化テキストを直接コピペして文書化することです！</strong>
+      
+      <div class="space-y-4 text-xs">
+        <div class="bg-brand-50 border border-brand-100 rounded-xl p-4 text-slate-700">
+          <strong class="text-brand-700 text-sm">💡 おすすめ: URLを貼り付けるだけ！</strong><br>
+          以下の専用リンクをコピーしてNotionにペーストし、<br>
+          <strong>「埋め込みを作成 (Create Embed)」</strong>を選ぶと、このマニュアルプレイヤーが直接Notion上で動きます。
         </div>
+        
         <div>
+          <label class="block font-bold text-slate-700 mb-1">マニュアル専用リンク (URL)</label>
+          <div class="flex gap-1.5">
+            <input type="text" id="share-url-input" readonly class="w-full border bg-slate-50 rounded-xl p-3 font-mono text-[11px] text-slate-600">
+            <button id="copy-url-btn" class="bg-brand-600 hover:bg-brand-700 text-white px-4 rounded-xl font-bold whitespace-nowrap shadow-sm">コピー</button>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4 mt-2">
           <label class="block font-bold text-slate-700 mb-1 flex justify-between items-center">
-            <span>Notion専用に整形されたトグル式マニュアルテキスト</span>
+            <span>テキスト（Markdown）として貼り付ける場合</span>
           </label>
           <div class="flex flex-col gap-2">
-            <textarea id="notion-markdown-output" readonly rows="5" class="w-full border bg-slate-50 rounded-xl p-2.5 font-mono text-[10px] text-slate-600 resize-none"></textarea>
-            <button id="copy-notion-md-btn" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-colors self-end shadow-sm">
-              ✨ Notion用テキストを丸ごとコピー
+            <textarea id="notion-markdown-output" readonly rows="4" class="w-full border bg-slate-50 rounded-xl p-2.5 font-mono text-[10px] text-slate-600 resize-none"></textarea>
+            <button id="copy-notion-md-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-colors self-end shadow-sm">
+              テキストをコピー
             </button>
           </div>
-        </div>
-        <div class="bg-brand-50 border border-brand-100 rounded-xl p-3 text-slate-700">
-          <strong>📋 構成手順：</strong><br>
-          1. Notionに動画（/video）を置いて配置。<br>
-          2. すぐ下に上記コピーテキストを貼り付ける。これだけで開閉トグルで秒数付き解説が構築されます。
-        </div>
-      </div>
-
-      <div id="share-panel-embed" class="space-y-4 text-xs hidden">
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 leading-relaxed text-slate-600">
-          Notionの「/embed」に以下のデプロイURLを入力すると、この動画時間連動プレイヤー自体をNotion上で同期再生可能になります。
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Notion埋め込み用 URL</label>
-          <div class="flex gap-1.5">
-            <input type="text" id="share-url-input" readonly class="w-full border bg-slate-50 rounded-xl p-2 font-mono text-[10px] text-slate-600">
-            <button id="copy-url-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 rounded-xl font-bold whitespace-nowrap">コピー</button>
-          </div>
-        </div>
-        <div class="bg-slate-100 border rounded-xl p-3.5 leading-relaxed text-slate-600 text-[11px]">
-          ⚠️ <strong>注意：</strong>他のユーザーに動画付きで再生してもらうには、あらかじめマニュアル保存時にYouTubeなどの外部動画リンク（動画URL）をマニュアルに紐付けてセーブしておくのがベストです。
         </div>
       </div>
     </div>
@@ -423,12 +407,7 @@
     <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 flex flex-col gap-4">
       <h3 class="font-bold text-slate-900 text-sm">⚙️ システム設定</h3>
       <div class="space-y-3 text-xs">
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">現在のログイン用パスコードの変更</label>
-          <input type="text" id="settings-passcode-input" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono tracking-widest text-center" placeholder="1234">
-          <p class="text-[10px] text-slate-400 mt-1">※パスコードを変更すると、次回アクセス時から新しいパスコードが必要になります。</p>
-        </div>
-        <div class="mt-4 pt-4 border-t border-slate-100">
+        <div class="pt-2">
           <label class="block font-bold text-slate-700 mb-1">録画動画のデフォルト保存先 (Googleドライブ等)</label>
           <div class="flex items-center gap-2">
             <input type="text" id="settings-dir-name" readonly class="flex-1 border bg-slate-50 text-slate-500 rounded-xl p-2 focus:outline-none text-[10px]" placeholder="未設定 (毎回ダイアログ表示)">
@@ -481,17 +460,13 @@
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- 🛡️ 安全なクラス操作・DOM操作ヘルパー (DOM Null安全化設計) ---
-    function getEl(id) {
-      return document.getElementById(id);
-    }
+    // --- 🛡️ 安全なクラス操作・DOM操作ヘルパー ---
+    function getEl(id) { return document.getElementById(id); }
 
     function addClass(id, className) {
       const el = getEl(id);
       if (el && className) {
-        className.split(' ').forEach(c => {
-          if (c.trim()) el.classList.add(c.trim());
-        });
+        className.split(' ').forEach(c => { if (c.trim()) el.classList.add(c.trim()); });
       }
     }
     window.addClass = addClass;
@@ -499,18 +474,14 @@
     function removeClass(id, className) {
       const el = getEl(id);
       if (el && className) {
-        className.split(' ').forEach(c => {
-          if (c.trim()) el.classList.remove(c.trim());
-        });
+        className.split(' ').forEach(c => { if (c.trim()) el.classList.remove(c.trim()); });
       }
     }
     window.removeClass = removeClass;
     
     function toggleClass(id, className, force) {
       const el = getEl(id);
-      if (el && className) {
-        el.classList.toggle(className, force);
-      }
+      if (el && className) { el.classList.toggle(className, force); }
     }
     window.toggleClass = toggleClass;
     
@@ -522,40 +493,23 @@
     
     function onEvent(id, eventName, handler) {
       const el = getEl(id);
-      if (el) {
-        el.addEventListener(eventName, handler);
-      }
+      if (el) el.addEventListener(eventName, handler);
     }
     window.onEvent = onEvent;
     
-    function setHtml(id, html) {
-      const el = getEl(id);
-      if (el) el.innerHTML = html;
-    }
+    function setHtml(id, html) { const el = getEl(id); if (el) el.innerHTML = html; }
     window.setHtml = setHtml;
     
-    function setText(id, text) {
-      const el = getEl(id);
-      if (el) el.textContent = text;
-    }
+    function setText(id, text) { const el = getEl(id); if (el) el.textContent = text; }
     window.setText = setText;
     
-    function setVal(id, value) {
-      const el = getEl(id);
-      if (el) el.value = value;
-    }
+    function setVal(id, value) { const el = getEl(id); if (el) el.value = value; }
     window.setVal = setVal;
     
-    function getVal(id) {
-      const el = getEl(id);
-      return el ? el.value : "";
-    }
+    function getVal(id) { const el = getEl(id); return el ? el.value : ""; }
     window.getVal = getVal;
 
-    function setProp(id, propName, value) {
-      const el = getEl(id);
-      if (el) el[propName] = value;
-    }
+    function setProp(id, propName, value) { const el = getEl(id); if (el) el[propName] = value; }
     window.setProp = setProp;
 
     function formatTime(seconds) {
@@ -567,39 +521,27 @@
     window.formatTime = formatTime;
 
     function getCurrentTimestamp() {
-      if (typeof isRecording !== 'undefined' && isRecording) {
-        return typeof getElapsedSeconds === 'function' ? getElapsedSeconds() : 0;
-      } else if (typeof isDemoMode !== 'undefined' && isDemoMode) {
-        return typeof demoTime !== 'undefined' ? demoTime : 0;
-      } else if (typeof isImportMode !== 'undefined' && isImportMode) {
-        const vp = getEl('video-preview');
-        return vp ? vp.currentTime : 0;
+      if (typeof isRecording !== 'undefined' && isRecording) return typeof getElapsedSeconds === 'function' ? getElapsedSeconds() : 0;
+      else if (typeof isDemoMode !== 'undefined' && isDemoMode) return typeof demoTime !== 'undefined' ? demoTime : 0;
+      else if (typeof isImportMode !== 'undefined' && isImportMode) {
+        const vp = getEl('video-preview'); return vp ? vp.currentTime : 0;
       }
-      const vp = getEl('video-preview');
-      return vp ? vp.currentTime : 0;
+      const vp = getEl('video-preview'); return vp ? vp.currentTime : 0;
     }
     window.getCurrentTimestamp = getCurrentTimestamp;
 
-    function getElapsedSeconds() {
-      return startTime ? (Date.now() - startTime) / 1000 : 0;
-    }
+    function getElapsedSeconds() { return startTime ? (Date.now() - startTime) / 1000 : 0; }
     window.getElapsedSeconds = getElapsedSeconds;
 
     function startTimer() {
       startTime = Date.now();
-      timerInterval = setInterval(() => {
-        setText('timer-display', formatTime(getElapsedSeconds()));
-      }, 500);
+      timerInterval = setInterval(() => { setText('timer-display', formatTime(getElapsedSeconds())); }, 500);
     }
     window.startTimer = startTimer;
 
     function stopTimer() {
-      if (typeof timerInterval !== 'undefined' && timerInterval) {
-        clearInterval(timerInterval);
-      }
-      if (typeof demoInterval !== 'undefined' && demoInterval) {
-        clearInterval(demoInterval);
-      }
+      if (typeof timerInterval !== 'undefined' && timerInterval) clearInterval(timerInterval);
+      if (typeof demoInterval !== 'undefined' && demoInterval) clearInterval(demoInterval);
     }
     window.stopTimer = stopTimer;
 
@@ -616,13 +558,11 @@
 
     function toggleTabs(showWorkspace) {
       if (showWorkspace) {
-        addClass('view-library', 'hidden');
-        removeClass('view-workspace', 'hidden');
+        addClass('view-library', 'hidden'); removeClass('view-workspace', 'hidden');
         setProp('nav-workspace-btn', 'className', "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5");
         setProp('nav-library-btn', 'className', "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5");
       } else {
-        addClass('view-workspace', 'hidden');
-        removeClass('view-library', 'hidden');
+        addClass('view-workspace', 'hidden'); removeClass('view-library', 'hidden');
         setProp('nav-library-btn', 'className', "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5");
         setProp('nav-workspace-btn', 'className', "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5");
       }
@@ -634,17 +574,8 @@
       t.className = 'fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-lg z-50 flex items-center gap-1.5 transition-all opacity-0 duration-300';
       t.innerHTML = `<span>✔️</span><span>${msg}</span>`; 
       document.body.appendChild(t);
-      
-      setTimeout(() => {
-        if (t) t.classList.remove('opacity-0');
-      }, 50);
-
-      setTimeout(() => {
-        if (t) {
-          t.classList.add('opacity-0');
-          setTimeout(() => t.remove(), 300);
-        }
-      }, 3000);
+      setTimeout(() => { if (t) t.classList.remove('opacity-0'); }, 50);
+      setTimeout(() => { if (t) { t.classList.add('opacity-0'); setTimeout(() => t.remove(), 300); } }, 3000);
     }
     window.showToast = showToast;
 
@@ -659,30 +590,17 @@
         const request = indexedDB.open(DB_NAME, 2);
         request.onupgradeneeded = (e) => {
           const dbInstance = e.target.result;
-          if (!dbInstance.objectStoreNames.contains(STORE_NAME)) {
-            dbInstance.createObjectStore(STORE_NAME, { keyPath: 'id' });
-          }
-          if (!dbInstance.objectStoreNames.contains(SETTINGS_STORE)) {
-            dbInstance.createObjectStore(SETTINGS_STORE, { keyPath: 'id' });
-          }
+          if (!dbInstance.objectStoreNames.contains(STORE_NAME)) dbInstance.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          if (!dbInstance.objectStoreNames.contains(SETTINGS_STORE)) dbInstance.createObjectStore(SETTINGS_STORE, { keyPath: 'id' });
         };
-        request.onsuccess = (e) => {
-          indexedDbInstance = e.target.result;
-          resolve(indexedDbInstance);
-        };
-        request.onerror = (e) => {
-          console.error("IndexedDBの初期化エラー:", e.target.error);
-          reject(e.target.error);
-        };
+        request.onsuccess = (e) => { indexedDbInstance = e.target.result; resolve(indexedDbInstance); };
+        request.onerror = (e) => { console.error("IndexedDBの初期化エラー:", e.target.error); reject(e.target.error); };
       });
     }
 
     function saveVideoBlob(id, blob) {
       return new Promise((resolve, reject) => {
-        if (!indexedDbInstance) {
-          reject("IndexedDBが初期化されていません");
-          return;
-        }
+        if (!indexedDbInstance) { reject("IndexedDBが初期化されていません"); return; }
         const transaction = indexedDbInstance.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
         const request = store.put({ id: id, blob: blob });
@@ -693,26 +611,18 @@
 
     function getVideoBlob(id) {
       return new Promise((resolve, reject) => {
-        if (!indexedDbInstance) {
-          resolve(null);
-          return;
-        }
+        if (!indexedDbInstance) { resolve(null); return; }
         const transaction = indexedDbInstance.transaction([STORE_NAME], 'readonly');
         const store = transaction.objectStore(STORE_NAME);
         const request = store.get(id);
-        request.onsuccess = (e) => {
-          resolve(e.target.result ? e.target.result.blob : null);
-        };
+        request.onsuccess = (e) => resolve(e.target.result ? e.target.result.blob : null);
         request.onerror = (e) => reject(e.target.error);
       });
     }
 
     function deleteVideoBlob(id) {
       return new Promise((resolve, reject) => {
-        if (!indexedDbInstance) {
-          resolve(false);
-          return;
-        }
+        if (!indexedDbInstance) { resolve(false); return; }
         const transaction = indexedDbInstance.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
         const request = store.delete(id);
@@ -721,7 +631,6 @@
       });
     }
 
-    // デフォルト保存先ディレクトリハンドルの保存と取得
     function saveDirHandle(handle) {
       return new Promise((resolve, reject) => {
         if (!indexedDbInstance) { reject("IndexedDB Error"); return; }
@@ -746,7 +655,6 @@
     }
     window.getDirHandle = getDirHandle;
 
-    // ディレクトリハンドルの権限検証
     async function verifyPermission(fileHandle, readWrite) {
       const opts = {};
       if (readWrite) opts.mode = 'readwrite';
@@ -756,30 +664,28 @@
     }
     window.verifyPermission = verifyPermission;
 
-    // ビデオ要素の安全制御
     function playVideo() {
       const vp = getEl('video-preview');
-      if (vp && (vp.src || vp.srcObject)) {
-        vp.play().catch(e => console.warn("Auto-play blocked or failed:", e));
-      }
+      if (vp && (vp.src || vp.srcObject)) vp.play().catch(e => console.warn("Auto-play blocked or failed:", e));
     }
     
     function setVideoCurrentTime(time) {
       const vp = getEl('video-preview');
-      if (vp && (vp.src || vp.srcObject)) {
-        vp.currentTime = time;
-      }
+      if (vp && (vp.src || vp.srcObject)) vp.currentTime = time;
     }
     
     function getVideoCurrentTime() {
-      const vp = getEl('video-preview');
-      return vp ? vp.currentTime : 0;
+      const vp = getEl('video-preview'); return vp ? vp.currentTime : 0;
     }
     
     function hasVideoSource() {
-      const vp = getEl('video-preview');
-      return vp ? !!(vp.src || vp.srcObject) : false;
+      const vp = getEl('video-preview'); return vp ? !!(vp.src || vp.srcObject) : false;
     }
+
+    // --- 🔐 整理されたシステム設定変数 ---
+    window.systemSettings = window.systemSettings || {
+      passcode: '1234'
+    };
 
     // --- 🔐 セキュリティ・Googleログイン・Firebase連携管理 ---
     let useFirebase = false;
@@ -804,7 +710,7 @@
       const manualId = urlParams.get('id');
       if (manualId) {
         setTimeout(() => {
-          loadManualToWorkspace(manualId);
+          if (typeof window.loadManualToWorkspace === 'function') window.loadManualToWorkspace(manualId);
         }, 500);
       }
     }
@@ -818,9 +724,7 @@
             console.warn("Popup blocked or failed, trying anonymous", err);
             window.firebaseAuth.signInAnonymously(auth);
           });
-        } catch(e) {
-          window.firebaseAuth.signInAnonymously(auth);
-        }
+        } catch(e) { window.firebaseAuth.signInAnonymously(auth); }
       } else {
         setTimeout(() => {
           sessionStorage.setItem('manureco_logged_in', 'true');
@@ -840,10 +744,10 @@
           if (docSnap.exists()) {
             window.dbState = docSnap.data();
           } else {
-            saveDatabase(); // 初期化
+            saveDatabase(); 
           }
           setText('library-count-badge', window.dbState.manuals.length);
-          renderLibrary();
+          window.renderLibrary();
         }, (error) => console.error(error));
       } else {
         loadDatabaseFallback();
@@ -884,7 +788,7 @@
         saveDatabaseFallback();
       }
       setText('library-count-badge', window.dbState.manuals.length);
-      renderLibrary();
+      window.renderLibrary();
     }
 
     function saveDatabaseFallback() {
@@ -908,20 +812,14 @@
     let activeTag = 'step'; 
     let currentSelectedFolderId = 'f-all';
     
-    let currentVideoFileInfo = {
-      name: '',
-      size: 0,
-      url: '',
-      savedPath: ''
-    };
-
+    let currentVideoFileInfo = { name: '', size: 0, url: '', savedPath: '' };
     let demoTime = 0;
     let demoInterval = null;
     let currentTimelineData = [];
     let activeEditingManualId = null;
     let activeVideoBlob = null;
 
-    // --- 🚨 画面録画データをGoogleドライブ等のローカル同期フォルダに直接保存する処理 ---
+    // --- 🚨 画面録画データを直接保存する処理 ---
     async function saveCapturedVideoDirectly(blob, defaultName) {
       try {
         const dirData = await getDirHandle();
@@ -937,27 +835,19 @@
             return dirData.name + "/" + defaultName; 
           }
         }
-      } catch (err) {
-        console.warn("デフォルトフォルダへの自動保存に失敗しました。通常の保存ダイアログへフォールバックします。", err);
-      }
+      } catch (err) { console.warn("デフォルトフォルダへの自動保存に失敗", err); }
 
       if ('showSaveFilePicker' in window) {
         try {
-          const options = {
-            suggestedName: defaultName,
-            types: [{ description: 'Video File', accept: { 'video/webm': ['.webm'] } }]
-          };
+          const options = { suggestedName: defaultName, types: [{ description: 'Video File', accept: { 'video/webm': ['.webm'] } }] };
           const fileHandle = await window.showSaveFilePicker(options);
           const writable = await fileHandle.createWritable();
           await writable.write(blob);
           await writable.close();
-          
-          showToast("📁 PCの指定フォルダ（Googleドライブ等）に動画を直接書き出しました！");
+          showToast("📁 PCの指定フォルダに動画を直接書き出しました！");
           return fileHandle.name;
         } catch (err) {
-          if (err.name !== 'AbortError') {
-            console.warn("直接保存エラー。通常ダウンロードに切り替えます:", err);
-          }
+          if (err.name !== 'AbortError') console.warn("直接保存エラー", err);
         }
       }
       
@@ -980,15 +870,12 @@
     
     function renderTimeline() {
       if (currentTimelineData.length === 0) {
-        removeClass('timeline-placeholder', 'hidden');
-        return;
+        removeClass('timeline-placeholder', 'hidden'); return;
       }
       addClass('timeline-placeholder', 'hidden');
       
       const tc = getEl('timeline-container');
-      if (tc) {
-        tc.querySelectorAll('.timeline-item-row').forEach(el => el.remove());
-      }
+      if (tc) tc.querySelectorAll('.timeline-item-row').forEach(el => el.remove());
 
       let stepCount = 1;
 
@@ -997,18 +884,11 @@
         row.className = 'timeline-item-row flex gap-2 relative border-l-2 pl-3 pb-4 border-slate-200 text-xs hover:border-brand-300 transition-colors group';
         
         let iconHtml = '';
-        if (item.type === 'important') {
-          iconHtml = '⚠️ コツ・注意';
-        } else if (item.type === 'transcript') {
-          iconHtml = '🎙️ 音声';
-        } else if (item.type === 'system') {
-          iconHtml = '🤖 補足';
-        } else if (item.type === 'step') {
-          iconHtml = `<span class="text-brand-600">⚙️ ステップ ${stepCount}</span>`;
-          stepCount++;
-        } else {
-          iconHtml = '📝 メモ';
-        }
+        if (item.type === 'important') iconHtml = '⚠️ コツ・注意';
+        else if (item.type === 'transcript') iconHtml = '🎙️ 音声';
+        else if (item.type === 'system') iconHtml = '🤖 補足';
+        else if (item.type === 'step') { iconHtml = `<span class="text-brand-600">⚙️ ステップ ${stepCount}</span>`; stepCount++; }
+        else iconHtml = '📝 メモ';
 
         row.innerHTML = `
           <div class="absolute -left-[5.5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 group-hover:bg-brand-400 transition-colors"></div>
@@ -1030,14 +910,8 @@
         tc.querySelectorAll('.stamp-jump').forEach(btn => {
           btn.addEventListener('click', () => {
             const t = parseFloat(btn.getAttribute('data-time'));
-            if (hasVideoSource()) {
-              setVideoCurrentTime(t);
-              playVideo();
-            }
-            if (isDemoMode) {
-              demoTime = t;
-              setText('timer-display', formatTime(demoTime));
-            }
+            if (hasVideoSource()) { setVideoCurrentTime(t); playVideo(); }
+            if (isDemoMode) { demoTime = t; setText('timer-display', formatTime(demoTime)); }
           });
         });
         
@@ -1056,19 +930,15 @@
             if (item) item.text = p.value.trim();
           });
         });
-
         tc.scrollTop = tc.scrollHeight;
       }
     }
 
-    // --- メモ送信コア ---
     function sendMemo() {
       const titleVal = getVal('memo-title-input').trim();
       const textVal = getVal('memo-input').trim(); 
       if (!textVal && !titleVal) return; 
-      
       addTimelineItem(getCurrentTimestamp(), titleVal, textVal, activeTag);
-      
       setVal('memo-title-input', '');
       setVal('memo-input', '');
       if (getEl('memo-title-input')) getEl('memo-title-input').focus();
@@ -1083,7 +953,7 @@
           const isSelected = f.id === currentSelectedFolderId;
           const count = f.id === 'f-all' ? window.dbState.manuals.length : window.dbState.manuals.filter(m => m.folderId === f.id).length;
           return `
-            <div class="flex justify-between items-center group p-2 rounded-lg cursor-pointer font-semibold transition-all ${isSelected ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" onclick="selectFolder('${f.id}')">
+            <div class="flex justify-between items-center group p-2 rounded-lg cursor-pointer font-semibold transition-all ${isSelected ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" onclick="window.selectFolder('${f.id}')">
               <span class="truncate">${f.name}</span>
               <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full">${count}</span>
             </div>
@@ -1096,12 +966,9 @@
       setText('current-folder-title', fObj ? fObj.name : "一覧");
 
       if (filteredManuals.length === 0) {
-        addClass('manuals-grid-container', 'hidden');
-        removeClass('library-empty-placeholder', 'hidden');
-        return;
+        addClass('manuals-grid-container', 'hidden'); removeClass('library-empty-placeholder', 'hidden'); return;
       }
-      addClass('library-empty-placeholder', 'hidden');
-      removeClass('manuals-grid-container', 'hidden');
+      addClass('library-empty-placeholder', 'hidden'); removeClass('manuals-grid-container', 'hidden');
 
       const mgc = getEl('manuals-grid-container');
       if (mgc) {
@@ -1113,9 +980,9 @@
               <div>
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-[9px] text-slate-400 font-mono">📅 ${m.createdAt}</span>
-                  <button onclick="deleteManual('${m.id}', event)" class="text-slate-400 hover:text-red-500 text-xs">&times; 削除</button>
+                  <button onclick="window.deleteManual('${m.id}', event)" class="text-slate-400 hover:text-red-500 text-xs">&times; 削除</button>
                 </div>
-                <h4 class="text-xs font-bold text-slate-800 line-clamp-2 cursor-pointer hover:text-brand-600 mb-1" onclick="openManualPreview('${m.id}')">📄 ${m.title}</h4>
+                <h4 class="text-xs font-bold text-slate-800 line-clamp-2 cursor-pointer hover:text-brand-600 mb-1" onclick="window.openManualPreview('${m.id}')">📄 ${m.title}</h4>
                 <div class="flex flex-wrap gap-1.5 items-center">
                   <span class="text-[9px] px-2 py-0.5 rounded-full border font-bold ${badgeColor}">${videoBadgeStr}</span>
                   <span class="text-[9px] text-slate-400 font-semibold">⏳ ステップ: ${m.timeline.filter(t=>t.type!=='system').length}</span>
@@ -1123,10 +990,10 @@
               </div>
               
               <div class="pt-3 border-t border-slate-100 flex gap-1.5 mt-2">
-                <button onclick="loadManualToWorkspace('${m.id}')" class="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold text-[10px] py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1">
-                  ✏️ 復元して再閲覧・編集
+                <button onclick="window.loadManualToWorkspace('${m.id}')" class="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold text-[10px] py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1">
+                  ✏️ 復元して再編集
                 </button>
-                <button onclick="openNotionShare('${m.id}', event)" class="flex-1 bg-slate-900 text-white font-bold text-[10px] py-1.5 px-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-1">
+                <button onclick="window.openNotionShare('${m.id}', event)" class="flex-1 bg-slate-900 text-white font-bold text-[10px] py-1.5 px-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-1">
                   🚀 Notion連携
                 </button>
               </div>
@@ -1138,8 +1005,7 @@
     window.renderLibrary = renderLibrary;
 
     window.selectFolder = function(id) {
-      currentSelectedFolderId = id;
-      renderLibrary();
+      currentSelectedFolderId = id; renderLibrary();
     };
 
     window.deleteManual = function(id, e) {
@@ -1147,27 +1013,23 @@
       if(confirm('このマニュアル保管データをライブラリから完全に削除しますか？')) {
         window.dbState.manuals = window.dbState.manuals.filter(m => m.id !== id);
         saveDatabase();
-        deleteVideoBlob(id)
-          .then(() => console.log("IndexedDBから動画Blobを削除しました。"))
-          .catch(err => console.error("IndexedDBからの動画削除エラー:", err));
+        deleteVideoBlob(id).catch(err => console.error(err));
         renderLibrary();
       }
     };
 
-    // 🔄 ワークスペースにマニュアルをロードする（IndexedDBからの動画自動復元アタッチ機能連動）
+    // 🔄 ワークスペースにマニュアルをロードする
     window.loadManualToWorkspace = async function(id) {
       const m = window.dbState.manuals.find(manual => manual.id === id);
       if (!m) return;
 
       activeEditingManualId = m.id;
       currentTimelineData = [...m.timeline];
-      
       resetToInitial();
       setVal('workspace-manual-title', m.title);
       renderTimeline();
 
       let loadedFromLocal = false;
-
       try {
         if (m.videoName) {
           const dirData = await getDirHandle();
@@ -1177,58 +1039,53 @@
               const fileHandle = await dirData.handle.getFileHandle(m.videoName, { create: false });
               const file = await fileHandle.getFile();
               if (file) {
-                setupVideoPlayer(file, m.videoName);
+                isImportMode = true; activeVideoBlob = file;
+                const objectUrl = URL.createObjectURL(file);
+                currentVideoFileInfo.name = m.videoName; currentVideoFileInfo.url = objectUrl;
+                const vp = getEl('video-preview');
+                if (vp) { vp.srcObject = null; vp.src = objectUrl; vp.muted = false; vp.controls = true; vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); }; }
+                removeClass('video-preview', 'hidden'); addClass('video-placeholder', 'hidden'); addClass('video-attach-prompt', 'hidden');
+                setText('timer-label', "PlaybackTime"); updateUIState(false);
                 showToast(`📁 ドライブフォルダから直接動画『${m.videoName}』を自動ロードしました！`);
                 loadedFromLocal = true;
               }
             }
           }
         }
-      } catch (err) {
-        console.warn("ローカルフォルダからの直接ロードはスキップされました:", err);
-      }
+      } catch (err) { console.warn("ローカルフォルダスキップ:", err); }
 
       if (!loadedFromLocal) {
         try {
           const storedBlob = await getVideoBlob(m.id);
           if (storedBlob) {
-            setupVideoPlayer(storedBlob, m.videoName || "saved_video.mp4");
-            showToast("💾 IndexedDBから保管動画を自動ロードして再生を開始しました！");
+            isImportMode = true; activeVideoBlob = storedBlob;
+            const objectUrl = URL.createObjectURL(storedBlob);
+            currentVideoFileInfo.name = m.videoName || "saved_video.mp4"; currentVideoFileInfo.url = objectUrl;
+            const vp = getEl('video-preview');
+            if (vp) { vp.srcObject = null; vp.src = objectUrl; vp.muted = false; vp.controls = true; vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); }; }
+            removeClass('video-preview', 'hidden'); addClass('video-placeholder', 'hidden'); addClass('video-attach-prompt', 'hidden');
+            setText('timer-label', "PlaybackTime"); updateUIState(false);
+            showToast("💾 IndexedDBから保管動画を自動ロードしました！");
             loadedFromLocal = true;
           }
-        } catch(e) { console.warn("IndexedDB load error:", e); }
+        } catch(e) {}
       }
 
       if (!loadedFromLocal) {
         if (m.videoUrl) {
           isImportMode = true;
           const vp = getEl('video-preview');
-          if (vp) {
-            vp.srcObject = null;
-            vp.src = m.videoUrl;
-            vp.muted = false;
-            vp.controls = true;
-            vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); };
-          }
-          removeClass('video-preview', 'hidden');
-          addClass('video-placeholder', 'hidden');
-          addClass('video-attach-prompt', 'hidden');
-          
-          setText('timer-label', "PlaybackTime");
-          updateUIState(false);
+          if (vp) { vp.srcObject = null; vp.src = m.videoUrl; vp.muted = false; vp.controls = true; vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); }; }
+          removeClass('video-preview', 'hidden'); addClass('video-placeholder', 'hidden'); addClass('video-attach-prompt', 'hidden');
+          setText('timer-label', "PlaybackTime"); updateUIState(false);
           showToast("🔗 外部動画URLからメディアを読み込みました");
         } else if (m.videoName) {
-          addClass('video-preview', 'hidden');
-          addClass('video-placeholder', 'hidden');
-          setText('attach-file-name', m.videoName);
-          removeClass('video-attach-prompt', 'hidden');
+          addClass('video-preview', 'hidden'); addClass('video-placeholder', 'hidden');
+          setText('attach-file-name', m.videoName); removeClass('video-attach-prompt', 'hidden');
           updateUIState(false);
           showToast("📼 動画ファイル『" + m.videoName + "』のアタッチが必要です");
         } else {
-          addClass('video-preview', 'hidden');
-          removeClass('video-placeholder', 'hidden');
-          addClass('video-attach-prompt', 'hidden');
-          updateUIState(false);
+          addClass('video-preview', 'hidden'); removeClass('video-placeholder', 'hidden'); addClass('video-attach-prompt', 'hidden'); updateUIState(false);
         }
       }
 
@@ -1236,46 +1093,32 @@
       toggleTabs(true); 
     };
 
-    // Notion連携埋め込み用ポップアップ呼び出し
+    // 🚨 修正: 確実にNotion用URLを発行する処理
     window.openNotionShare = function(id, e) {
       if (e) e.stopPropagation();
       const m = window.dbState.manuals.find(manual => manual.id === id);
       if (!m) return;
 
       const baseAppUrl = window.location.origin + window.location.pathname;
-      const simulatedShareUrl = `${baseAppUrl}?id=${m.id}&p=${systemSettings.passcode}`;
+      const simulatedShareUrl = `${baseAppUrl}?id=${m.id}`;
       setVal('share-url-input', simulatedShareUrl);
 
-      // Notionコピペトグルテキストの生成
-      let notionMd = `### 📄 ${m.title}\n`;
-      notionMd += `*作成日: ${m.createdAt}*\n\n`;
-      notionMd += `> 💡 **ManuReco タイムスタンプガイド:** 各項目に付与されたタイムスタンプ（例 \`[01:12]\`）は、動画マニュアルの再生時間を指しています。\n\n`;
-      
+      let notionMd = `### 📄 ${m.title}\n*作成日: ${m.createdAt}*\n\n> 💡 **ManuReco タイムスタンプガイド:** 各項目に付与されたタイムスタンプ（例 \`[01:12]\`）は、動画マニュアルの再生時間を指しています。\n\n`;
       let stepCounter = 1;
       m.timeline.forEach(t => {
         if (t.type === 'system') return;
-        
         let emoji = '📝 【メモ】';
         if (t.type === 'important') emoji = '⚠️ 【重要・コツ】';
         if (t.type === 'transcript') emoji = '🎙️ 【音声書き起こし】';
-        if (t.type === 'step') {
-          emoji = `⚙️ 【ステップ ${stepCounter}】`;
-          stepCounter++;
-        }
+        if (t.type === 'step') { emoji = `⚙️ 【ステップ ${stepCounter}】`; stepCounter++; }
 
-        if (t.title) {
-          notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji} **${t.title}**\n`;
-        } else {
-          notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji}\n`;
-        }
+        if (t.title) notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji} **${t.title}**\n`;
+        else notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji}\n`;
         notionMd += `>> ${t.text}\n\n`;
       });
 
       setVal('notion-markdown-output', notionMd);
-      
-      const tabCopy = getEl('share-tab-copy');
-      if (tabCopy) tabCopy.click();
-      
+      const tabCopy = getEl('share-tab-copy'); if (tabCopy) tabCopy.click();
       removeClass('share-modal', 'hidden');
     };
 
@@ -1284,7 +1127,6 @@
       const m = window.dbState.manuals.find(manual => manual.id === id);
       if (!m) return;
       setText('preview-modal-title', m.title);
-      
       const pmt = getEl('preview-modal-timeline');
       if (pmt) {
         let sc = 1;
@@ -1294,90 +1136,40 @@
           if (t.type==='transcript') tagB = '🎙️ 音声';
           if (t.type==='system') tagB = '🤖 補足';
           if (t.type==='step') { tagB = `⚙️ ステップ ${sc}`; sc++; }
-          
           let titleHtml = t.title ? `<h5 class="font-bold text-slate-800 text-sm mb-1">${t.title}</h5>` : '';
-          
-          return `
-            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex flex-col gap-1.5 shadow-sm">
-              <div class="flex items-center gap-2 mb-1"><span class="font-mono bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded font-bold border border-brand-100">⏱️ ${formatTime(t.time)}</span><span class="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border">${tagB}</span></div>
-              ${titleHtml}
-              <p class="text-slate-600 font-medium leading-relaxed">${t.text}</p>
-            </div>
-          `;
+          return `<div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex flex-col gap-1.5 shadow-sm"><div class="flex items-center gap-2 mb-1"><span class="font-mono bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded font-bold border border-brand-100">⏱️ ${formatTime(t.time)}</span><span class="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border">${tagB}</span></div>${titleHtml}<p class="text-slate-600 font-medium leading-relaxed">${t.text}</p></div>`;
         }).join('');
       }
       removeClass('preview-modal', 'hidden');
     };
 
-    // --- 各種ヘルパーユーティリティ ---
     function updateUIState(rec) {
       const sBtn = getEl('start-btn');
-      if (sBtn) {
-        sBtn.disabled = rec;
-        sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-1 shadow-sm ${rec?'bg-slate-300 text-slate-400 cursor-not-allowed':'bg-brand-600 text-white'}`;
-      }
-      
+      if (sBtn) { sBtn.disabled = rec; sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-1 shadow-sm ${rec?'bg-slate-300 text-slate-400 cursor-not-allowed':'bg-brand-600 text-white'}`; }
       const stBtn = getEl('stop-btn');
-      if (stBtn) {
-        stBtn.disabled = !rec;
-        stBtn.className = `p-2.5 rounded-xl text-xs font-bold ${rec?'bg-red-600 text-white':'bg-white border border-slate-200 text-slate-400 cursor-not-allowed'}`;
-      }
-      
-      const memoTitleIn = getEl('memo-title-input');
-      const memoIn = getEl('memo-input');
-      
-      if (memoTitleIn) {
-        memoTitleIn.disabled = false;
-        memoTitleIn.classList.remove('bg-slate-100','cursor-not-allowed');
-        memoTitleIn.classList.add('bg-white');
-      }
-      if (memoIn) {
-        memoIn.disabled = false;
-        memoIn.classList.remove('bg-slate-100','cursor-not-allowed');
-        memoIn.classList.add('bg-white', 'text-slate-900');
-        memoIn.placeholder = "詳細な手順やコツを入力...";
-      }
-      
+      if (stBtn) { stBtn.disabled = !rec; stBtn.className = `p-2.5 rounded-xl text-xs font-bold ${rec?'bg-red-600 text-white':'bg-white border border-slate-200 text-slate-400 cursor-not-allowed'}`; }
+      const memoTitleIn = getEl('memo-title-input'); const memoIn = getEl('memo-input');
+      if (memoTitleIn) { memoTitleIn.disabled = false; memoTitleIn.classList.remove('bg-slate-100','cursor-not-allowed'); memoTitleIn.classList.add('bg-white'); }
+      if (memoIn) { memoIn.disabled = false; memoIn.classList.remove('bg-slate-100','cursor-not-allowed'); memoIn.classList.add('bg-white', 'text-slate-900'); memoIn.placeholder = "詳細な手順やコツを入力..."; }
       setProp('add-memo-btn', 'disabled', false);
-      
       const si = getEl('status-indicator');
-      if (si) {
-        si.className = rec ? "w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse" : "w-3.5 h-3.5 rounded-full bg-emerald-500";
-      }
+      if (si) si.className = rec ? "w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse" : "w-3.5 h-3.5 rounded-full bg-emerald-500";
       setText('status-text', rec ? "画面収録中..." : "編集・プレビュー中");
       toggleClass('recording-overlay', 'opacity-100', rec);
     }
     
     function resetToInitial() {
       isRecording = false; isImportMode = false; isDemoMode = false; stopTimer();
-      setText('timer-display', "00:00");
-      setText('timer-label', "ElapsedTime");
-      const si = getEl('status-indicator');
-      if (si) si.className = "w-3.5 h-3.5 rounded-full bg-slate-300";
+      setText('timer-display', "00:00"); setText('timer-label', "ElapsedTime");
+      const si = getEl('status-indicator'); if (si) si.className = "w-3.5 h-3.5 rounded-full bg-slate-300";
       setText('status-text', "準備完了");
-      
-      const memoTitleIn = getEl('memo-title-input');
-      const memoIn = getEl('memo-input');
-      
-      if (memoTitleIn) {
-        memoTitleIn.disabled = true;
-        memoTitleIn.classList.add('bg-slate-100','cursor-not-allowed');
-        memoTitleIn.classList.remove('bg-white');
-      }
-      if (memoIn) {
-        memoIn.disabled = true;
-        memoIn.classList.add('bg-slate-100','cursor-not-allowed');
-        memoIn.classList.remove('bg-white', 'text-slate-900');
-        memoIn.placeholder = "動画を設定すると入力できます...";
-      }
+      const memoTitleIn = getEl('memo-title-input'); const memoIn = getEl('memo-input');
+      if (memoTitleIn) { memoTitleIn.disabled = true; memoTitleIn.classList.add('bg-slate-100','cursor-not-allowed'); memoTitleIn.classList.remove('bg-white'); }
+      if (memoIn) { memoIn.disabled = true; memoIn.classList.add('bg-slate-100','cursor-not-allowed'); memoIn.classList.remove('bg-white', 'text-slate-900'); memoIn.placeholder = "動画を設定すると入力できます..."; }
       setProp('add-memo-btn', 'disabled', true);
-      
       setVal('workspace-manual-title', ''); 
-      
-      addClass('video-preview', 'hidden');
-      removeClass('video-placeholder', 'hidden');
-      addClass('video-attach-prompt', 'hidden');
-      addClass('save-video-action-area', 'hidden');
+      addClass('video-preview', 'hidden'); removeClass('video-placeholder', 'hidden');
+      addClass('video-attach-prompt', 'hidden'); addClass('save-video-action-area', 'hidden');
       addClass('recording-overlay', 'opacity-0');
     }
 
@@ -1385,7 +1177,6 @@
     // 全イベントリスナーの登録と初期化 (DOM Load後)
     // ==========================================
     window.onload = () => {
-      // モーダル系
       onEvent('close-share-modal-btn', 'click', () => addClass('share-modal', 'hidden'));
       onEvent('close-fallback-btn', 'click', () => addClass('fallback-modal', 'hidden'));
       onEvent('close-preview-modal-btn', 'click', () => addClass('preview-modal', 'hidden'));
@@ -1396,7 +1187,45 @@
       });
       onEvent('copy-url-btn', 'click', () => {
         const input = getEl('share-url-input');
-        if (input) { input.select(); document.execCommand('copy'); showToast("URLをコピーしました！"); }
+        if (input) { input.select(); document.execCommand('copy'); showToast("専用リンクのURLをコピーしました！"); }
+      });
+
+      // 🚨 追加: 欠落していた設定モーダル（保存先固定）のイベント
+      onEvent('open-settings-btn', 'click', () => {
+        if (typeof getDirHandle === 'function') {
+          getDirHandle().then(data => {
+            if (data && data.name) {
+              setVal('settings-dir-name', '📁 ' + data.name);
+            } else {
+              setVal('settings-dir-name', '');
+            }
+          }).catch(e => console.warn(e));
+        }
+        removeClass('settings-modal', 'hidden');
+      });
+      
+      onEvent('close-settings-btn', 'click', () => addClass('settings-modal', 'hidden'));
+      
+      onEvent('save-settings-btn', 'click', () => {
+        addClass('settings-modal', 'hidden');
+        showToast("🔐 システム設定を保存しました。");
+      });
+      
+      onEvent('select-dir-btn', 'click', async () => {
+        if (!('showDirectoryPicker' in window)) {
+          alert("お使いのブラウザはフォルダの固定機能（File System Access API）をサポートしていません。ChromeまたはEdgeをご利用ください。");
+          return;
+        }
+        try {
+          const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+          if (typeof saveDirHandle === 'function') {
+            await saveDirHandle(dirHandle);
+            setVal('settings-dir-name', '📁 ' + dirHandle.name);
+            showToast("デフォルト保存先フォルダを設定しました！");
+          }
+        } catch (err) {
+          console.warn("ディレクトリ選択がキャンセル、またはエラー:", err);
+        }
       });
 
       onEvent('share-tab-copy', 'click', () => {
@@ -1411,7 +1240,6 @@
         removeClass('share-panel-embed', 'hidden'); addClass('share-panel-copy', 'hidden');
       });
 
-      // メモ系
       onEvent('add-memo-btn', 'click', sendMemo);
       onEvent('memo-input', 'keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMemo(); });
       onEvent('memo-title-input', 'keydown', (e) => { if (e.key === 'Enter') { if (e.ctrlKey || e.metaKey) sendMemo(); else if (getEl('memo-input')) getEl('memo-input').focus(); }});
@@ -1428,7 +1256,6 @@
         });
       }
 
-      // 🚨 保管ロジック (自動補完機能の統合)
       onEvent('open-save-modal-btn', 'click', async () => {
         const currentWorkspaceTitle = getVal('workspace-manual-title').trim();
         setVal('modal-manual-title', currentWorkspaceTitle || (isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書"));
@@ -1436,24 +1263,15 @@
         setVal('modal-video-name', currentVideoFileInfo.name || "アタッチ動画なし");
         
         let urlValue = '';
-        if (currentVideoFileInfo.savedPath) {
-          urlValue = currentVideoFileInfo.savedPath;
-        } else {
-          try {
-             const dirData = await getDirHandle();
-             if (dirData && dirData.name && currentVideoFileInfo.name) {
-               urlValue = dirData.name + '/' + currentVideoFileInfo.name;
-             }
-          } catch(e){}
+        if (currentVideoFileInfo.savedPath) urlValue = currentVideoFileInfo.savedPath;
+        else {
+          try { const dirData = await getDirHandle(); if (dirData && dirData.name && currentVideoFileInfo.name) urlValue = dirData.name + '/' + currentVideoFileInfo.name; } catch(e){}
         }
         setVal('modal-video-url', urlValue);
-        
         removeClass('save-modal', 'hidden');
       });
-      
       onEvent('close-save-modal-btn', 'click', () => addClass('save-modal', 'hidden'));
 
-      // 🚨 「設定からパスを補完」ボタンのアクション
       onEvent('auto-fill-drive-btn', 'click', async () => {
          try {
            const dirData = await getDirHandle();
@@ -1461,12 +1279,8 @@
              const vName = getVal('modal-video-name') || currentVideoFileInfo.name;
              setVal('modal-video-url', dirData.name + '/' + vName);
              showToast("設定済みのドライブフォルダパスを自動補完しました");
-           } else {
-             alert("システム設定(⚙️)から「デフォルト保存先フォルダ」を先に設定してください。");
-           }
-         } catch(e){
-           alert("設定の読み込みに失敗しました。");
-         }
+           } else { alert("システム設定(⚙️)から「デフォルト保存先フォルダ」を先に設定してください。"); }
+         } catch(e){ alert("設定の読み込みに失敗しました。"); }
       });
 
       onEvent('execute-save-btn', 'click', () => {
@@ -1479,17 +1293,10 @@
 
         const newManual = {
           id: activeEditingManualId || 'm-' + Date.now(),
-          title: title,
-          folderId: folderId,
-          createdAt: getFormattedDate(true),
-          videoName: vName !== "アタッチ動画なし" ? vName : "",
-          videoUrl: vUrl,
-          timeline: [...currentTimelineData]
+          title: title, folderId: folderId, createdAt: getFormattedDate(true), videoName: vName !== "アタッチ動画なし" ? vName : "", videoUrl: vUrl, timeline: [...currentTimelineData]
         };
 
-        if (activeVideoBlob) {
-          saveVideoBlob(newManual.id, activeVideoBlob).catch(err => console.error(err));
-        }
+        if (activeVideoBlob) saveVideoBlob(newManual.id, activeVideoBlob).catch(err => console.error(err));
 
         if (activeEditingManualId !== null) {
           const idx = window.dbState.manuals.findIndex(m => m.id === activeEditingManualId);
@@ -1500,52 +1307,35 @@
           showToast("✔️ ライブラリに安全にマニュアルを新規保管しました！");
         }
 
-        saveDatabase();
-        addClass('save-modal', 'hidden');
-        activeEditingManualId = null;
-        activeVideoBlob = null; 
-        
-        toggleTabs(false);
-        renderLibrary();
+        saveDatabase(); addClass('save-modal', 'hidden'); activeEditingManualId = null; activeVideoBlob = null; 
+        toggleTabs(false); renderLibrary();
       });
 
       onEvent('add-folder-btn', 'click', () => {
         const name = prompt('新規作成するマニュアルフォルダ名を入力してください：');
-        if (name) {
-          window.dbState.folders.push({ id: 'f-' + Date.now(), name: '📁 ' + name });
-          saveDatabase();
-          renderLibrary();
-        }
+        if (name) { window.dbState.folders.push({ id: 'f-' + Date.now(), name: '📁 ' + name }); saveDatabase(); renderLibrary(); }
       });
 
-      // 🚨 録画完了後の手動保存アクション (Transient activation required の回避)
       onEvent('save-video-action-btn', 'click', async () => {
         const defaultFileName = currentVideoFileInfo.name || "Manual_Recording_" + getFormattedDate() + ".webm";
         const savedPath = await saveCapturedVideoDirectly(activeVideoBlob, defaultFileName);
         if (savedPath) {
-          // 保存されたパスを記憶
-          currentVideoFileInfo.name = defaultFileName;
-          currentVideoFileInfo.savedPath = savedPath;
+          currentVideoFileInfo.name = defaultFileName; currentVideoFileInfo.savedPath = savedPath;
           setVal('modal-video-name', defaultFileName);
           showToast("動画を保存しました。マニュアルを保管してください。");
         }
         addClass('save-video-action-area', 'hidden'); 
       });
 
-      // 🚨 録画と停止
       onEvent('start-btn', 'click', async () => {
         try {
-          recordedChunks = []; 
-          isImportMode = false; isDemoMode = false;
-          addClass('demo-simulator', 'hidden');
-          addClass('video-attach-prompt', 'hidden');
-          addClass('save-video-action-area', 'hidden');
+          recordedChunks = []; isImportMode = false; isDemoMode = false;
+          addClass('demo-simulator', 'hidden'); addClass('video-attach-prompt', 'hidden'); addClass('save-video-action-area', 'hidden');
           
           screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
           const vp = getEl('video-preview');
           if (vp) { vp.srcObject = screenStream; vp.muted = true; vp.play(); }
-          removeClass('video-preview', 'hidden');
-          addClass('video-placeholder', 'hidden');
+          removeClass('video-preview', 'hidden'); addClass('video-placeholder', 'hidden');
           
           mediaRecorder = new MediaRecorder(screenStream, { mimeType: 'video/webm; codecs=vp9' });
           mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
@@ -1556,13 +1346,10 @@
             const objectUrl = URL.createObjectURL(blob);
             const defaultFileName = "Manual_Recording_" + getFormattedDate() + ".webm";
             
-            currentVideoFileInfo.name = defaultFileName;
-            currentVideoFileInfo.url = objectUrl;
-            currentVideoFileInfo.size = blob.size;
+            currentVideoFileInfo.name = defaultFileName; currentVideoFileInfo.url = objectUrl; currentVideoFileInfo.size = blob.size;
 
             if (vp) { vp.srcObject = null; vp.src = objectUrl; vp.controls = true; vp.muted = false; }
             
-            // 🚨 デフォルトフォルダでの自動保存を試行
             let isAutoSaved = false;
             try {
               const dirData = await getDirHandle();
@@ -1571,10 +1358,7 @@
                 if (hasPerm) {
                   const fileHandle = await dirData.handle.getFileHandle(defaultFileName, { create: true });
                   const writable = await fileHandle.createWritable();
-                  await writable.write(blob);
-                  await writable.close();
-                  
-                  // 自動保存されたパスを記憶
+                  await writable.write(blob); await writable.close();
                   currentVideoFileInfo.savedPath = dirData.name + "/" + defaultFileName;
                   setVal('modal-video-name', defaultFileName);
                   showToast(`📁 録画完了。指定フォルダ「${dirData.name}」へ自動保存しました！`);
@@ -1584,9 +1368,7 @@
             } catch(e) { console.warn("Auto save failed", e); }
             
             removeClass('save-library-banner', 'hidden');
-
             if (!isAutoSaved) {
-              // 自動保存されなかった場合はアクションボタンを表示して手動保存を促す
               removeClass('save-video-action-area', 'hidden');
               showToast("収録完了。上の「保存先を指定する」ボタンを押して動画をPCに保存してください。");
             }
@@ -1595,7 +1377,7 @@
           mediaRecorder.start(1000);
           isRecording = true; startTimer(); updateUIState(true);
           currentVideoFileInfo.name = "Recording_" + getFormattedDate() + ".webm";
-          currentVideoFileInfo.savedPath = ""; // 録画開始時にパスをクリア
+          currentVideoFileInfo.savedPath = ""; 
           
           currentTimelineData = []; 
           addTimelineItem(0, "収録の開始", "マニュアル動画のキャプチャ収録を開始しました。", "system");
@@ -1614,12 +1396,8 @@
         if (screenStream) screenStream.getTracks().forEach(t => t.stop());
       });
 
-      // Firebase 初期化の非同期実行
       async function initFirebaseAsync() {
-        if (typeof __firebase_config === 'undefined') {
-          loadDatabaseFallback();
-          return;
-        }
+        if (typeof __firebase_config === 'undefined') { loadDatabaseFallback(); return; }
         try {
           const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
           const { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
@@ -1648,17 +1426,11 @@
           } else {
              await signInAnonymously(auth);
           }
-        } catch (e) {
-          console.warn("Firebase Init Error:", e);
-          loadDatabaseFallback();
-        }
+        } catch (e) { console.warn("Firebase Init Error:", e); loadDatabaseFallback(); }
       }
 
-      initIndexedDB().then(() => {
-        console.log("IndexedDB 動画保管システムが正常にマウントされました。");
-      }).catch(err => {
-        console.warn("IndexedDBの初期化に失敗しました:", err);
-      });
+      initIndexedDB().then(() => { console.log("IndexedDB 動画保管システムが正常にマウントされました。"); })
+        .catch(err => { console.warn("IndexedDBの初期化に失敗しました:", err); });
 
       initFirebaseAsync();
     };
