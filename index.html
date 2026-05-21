@@ -247,7 +247,7 @@
           <div id="save-library-banner" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3 hidden">
             <div>
               <h4 class="text-xs font-bold text-slate-900">✨ マニュアルの骨子が完成しました！</h4>
-              <p class="text-[11px] text-slate-500">このままアプリ内ライブラリに保管し、フォルダ管理やNotion埋め込みリンクを発行できます。</p>
+              <p class="text-[11px] text-slate-500">このままアプリ内ライブラリに保管し、フォルダ管理や手順書の発行ができます。</p>
             </div>
             <button id="open-save-modal-btn" class="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-md flex items-center justify-center gap-1">
               📦 ライブラリに保管する
@@ -380,37 +380,25 @@
     </div>
   </div>
 
-  <!-- 2. Notion共有・マニュアルコードモーダル -->
+  <!-- 2. 🚨 修正: 時間を抜いた手順書出力モーダル -->
   <div id="share-modal" class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-        <h3 class="font-bold text-slate-900 text-base flex items-center gap-1.5">🚀 Notionへマニュアルを追加</h3>
+        <h3 class="font-bold text-slate-900 text-base flex items-center gap-1.5">📄 手順書のテキスト出力</h3>
         <button id="close-share-modal-btn" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
       </div>
       
       <div class="space-y-4 text-xs">
         <div class="bg-brand-50 border border-brand-100 rounded-xl p-4 text-slate-700">
-          <strong class="text-brand-700 text-sm">💡 おすすめ: URLを貼り付けるだけ！</strong><br>
-          以下の専用リンクをコピーしてNotionにペーストし、<br>
-          <strong>「埋め込みを作成 (Create Embed)」</strong>を選ぶと、このマニュアルプレイヤーが直接Notion上で動きます。
-        </div>
-        
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">マニュアル専用リンク (URL)</label>
-          <div class="flex gap-1.5">
-            <input type="text" id="share-url-input" readonly class="w-full border bg-slate-50 rounded-xl p-3 font-mono text-[11px] text-slate-600">
-            <button id="copy-url-btn" class="bg-brand-600 hover:bg-brand-700 text-white px-4 rounded-xl font-bold whitespace-nowrap shadow-sm">コピー</button>
-          </div>
+          <strong class="text-brand-700 text-sm">💡 動画なしで手順書として利用</strong><br>
+          以下のテキストをコピーして、チャットツールやドキュメントに貼り付けてご利用ください。時間（タイムスタンプ）は省かれています。
         </div>
 
-        <div class="border-t border-slate-100 pt-4 mt-2">
-          <label class="block font-bold text-slate-700 mb-1 flex justify-between items-center">
-            <span>テキスト（Markdown）として貼り付ける場合</span>
-          </label>
+        <div>
           <div class="flex flex-col gap-2">
-            <textarea id="notion-markdown-output" readonly rows="4" class="w-full border bg-slate-50 rounded-xl p-2.5 font-mono text-[10px] text-slate-600 resize-none"></textarea>
-            <button id="copy-notion-md-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-colors self-end shadow-sm">
-              テキストをコピー
+            <textarea id="notion-markdown-output" readonly rows="10" class="w-full border bg-slate-50 rounded-xl p-3 font-medium text-xs text-slate-700 resize-none leading-relaxed"></textarea>
+            <button id="copy-notion-md-btn" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-colors self-end shadow-sm">
+              ✨ テキストを丸ごとコピー
             </button>
           </div>
         </div>
@@ -941,7 +929,6 @@
     let activeEditingManualId = null;
     let activeVideoBlob = null;
 
-    // --- 🚨 ドラッグ＆ドロップ機能 (フォルダ＆マニュアル) ---
     window.handleDragStart = function(e, type, id) {
       e.stopPropagation();
       e.dataTransfer.setData('text/plain', JSON.stringify({ type, id }));
@@ -952,7 +939,7 @@
       e.preventDefault();
       e.stopPropagation();
       e.dataTransfer.dropEffect = 'move';
-      e.currentTarget.classList.add('bg-brand-100'); // Hover表示
+      e.currentTarget.classList.add('bg-brand-100');
     };
 
     window.handleDragLeave = function(e) {
@@ -999,7 +986,6 @@
       } catch (err) {}
     };
 
-    // --- 🎙️ マイクテスト機能 ---
     let testMicStream = null;
     let testAudioContext = null;
     let testAnalyser = null;
@@ -1284,7 +1270,6 @@
       return treeHtml;
     }
 
-    // 🚨 追加: フォルダのフルパス（階層名）を取得するヘルパー関数
     function getFolderPath(folderId) {
        if (!folderId) return '📁 未分類';
        let current = window.dbState.folders.find(f => f.id === folderId);
@@ -1350,7 +1335,6 @@
           let actionLabel = isTeam ? '📖 開いて閲覧' : '✏️ 復元して再編集';
           let deleteBtnHtml = (!isTeam || (currentUser && m.authorUid === currentUser.uid)) ? `<button onclick="window.deleteManual('${m.id}', event)" class="text-slate-400 hover:text-red-500 text-xs">&times; 削除</button>` : '';
 
-          // 🚨 修正: フォルダのフルパスを取得してバッジに表示
           const folderPathName = getFolderPath(m.folderId);
 
           return `
@@ -1374,8 +1358,8 @@
                 <button onclick="window.loadManualToWorkspace('${m.id}')" class="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold text-[10px] py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1">
                   ${actionLabel}
                 </button>
-                <button onclick="window.openNotionShare('${m.id}', event)" class="flex-1 bg-slate-900 text-white font-bold text-[10px] py-1.5 px-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-1">
-                  🚀 Notion連携
+                <button onclick="window.openTextExport('${m.id}', event)" class="flex-1 bg-slate-900 text-white font-bold text-[10px] py-1.5 px-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-1">
+                  📄 テキスト出力
                 </button>
               </div>
             </div>
@@ -1482,31 +1466,29 @@
       toggleTabs(true); 
     };
 
-    window.openNotionShare = function(id, e) {
+    // 🚨 変更: 時間なしで出力するテキスト出力機能
+    window.openTextExport = function(id, e) {
       if (e) e.stopPropagation();
       const m = window.dbState.manuals.find(manual => manual.id === id) || teamManuals.find(manual => manual.id === id);
       if (!m) return;
 
-      const baseAppUrl = window.location.origin + window.location.pathname;
-      const simulatedShareUrl = `${baseAppUrl}?id=${m.id}`;
-      setVal('share-url-input', simulatedShareUrl);
-
-      let notionMd = `### 📄 ${m.title}\n*作成日: ${m.createdAt}*\n\n> 💡 **ManuReco タイムスタンプガイド:** 各項目に付与されたタイムスタンプ（例 \`[01:12]\`）は、動画マニュアルの再生時間を指しています。\n\n`;
+      let md = `# 📄 ${m.title}\n`;
+      md += `作成日: ${m.createdAt}\n\n`;
+      
       let stepCounter = 1;
       m.timeline.forEach(t => {
         if (t.type === 'system') return;
-        let emoji = '📝 【メモ】';
-        if (t.type === 'important') emoji = '⚠️ 【重要・コツ】';
-        if (t.type === 'transcript') emoji = '🎙️ 【音声書き起こし】';
-        if (t.type === 'step') { emoji = `⚙️ 【ステップ ${stepCounter}】`; stepCounter++; }
+        let prefix = '📝 メモ';
+        if (t.type === 'important') prefix = '⚠️ コツ・注意';
+        if (t.type === 'transcript') prefix = '🎙️ 音声';
+        if (t.type === 'step') { prefix = `⚙️ ステップ ${stepCounter}`; stepCounter++; }
 
-        if (t.title) notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji} **${t.title}**\n`;
-        else notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji}\n`;
-        notionMd += `>> ${t.text}\n\n`;
+        if (t.title) md += `### ${prefix}： ${t.title}\n`;
+        else md += `### ${prefix}\n`;
+        md += `${t.text}\n\n`;
       });
 
-      setVal('notion-markdown-output', notionMd);
-      const tabCopy = getEl('share-tab-copy'); if (tabCopy) tabCopy.click();
+      setVal('notion-markdown-output', md);
       removeClass('share-modal', 'hidden');
     };
 
@@ -1585,14 +1567,12 @@
     // 全イベントリスナーの登録と初期化 (DOM Load後)
     // ==========================================
     window.onload = () => {
-      // 🚨 グローバルショートカットの登録 (爆速インライン入力)
       document.addEventListener('keydown', (e) => {
         if (!isRecording && !hasVideoSource() && !isDemoMode) return;
 
         const targetTag = e.target.tagName.toLowerCase();
         const isInput = targetTag === 'input' || targetTag === 'textarea';
 
-        // 🚨 修正: Shift + Enter をショートカットに設定
         if (e.key === 'Enter' && e.shiftKey && !isInput) {
           e.preventDefault(); window.createInlineStep();
         }
@@ -1609,11 +1589,7 @@
       
       onEvent('copy-notion-md-btn', 'click', () => {
         const output = getEl('notion-markdown-output');
-        if (output) { output.select(); document.execCommand('copy'); showToast("Notionテキストをコピーしました！"); }
-      });
-      onEvent('copy-url-btn', 'click', () => {
-        const input = getEl('share-url-input');
-        if (input) { input.select(); document.execCommand('copy'); showToast("専用リンクのURLをコピーしました！"); }
+        if (output) { output.select(); document.execCommand('copy'); showToast("テキストをコピーしました！"); }
       });
 
       onEvent('open-settings-btn', 'click', () => {
@@ -1654,18 +1630,6 @@
         } catch (err) {
           console.warn("ディレクトリ選択がキャンセル、またはエラー:", err);
         }
-      });
-
-      onEvent('share-tab-copy', 'click', () => {
-        setProp('share-tab-copy', 'className', "flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center");
-        setProp('share-tab-embed', 'className', "flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center");
-        removeClass('share-panel-copy', 'hidden'); addClass('share-panel-embed', 'hidden');
-      });
-
-      onEvent('share-tab-embed', 'click', () => {
-        setProp('share-tab-embed', 'className', "flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center");
-        setProp('share-tab-copy', 'className', "flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center");
-        removeClass('share-panel-embed', 'hidden'); addClass('share-panel-copy', 'hidden');
       });
 
       onEvent('add-memo-btn', 'click', sendMemo);
