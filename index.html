@@ -102,7 +102,7 @@
       </div>
     </header>
 
-    <!-- 環境警告バナー (iframe内実行時に動的表示) -->
+    <!-- 環境警告バナー -->
     <div id="sandbox-banner" class="hidden bg-amber-50 border-b border-amber-200 px-6 py-2 text-amber-800 text-[11px] flex items-center justify-between transition-all">
       <div class="flex items-center gap-2"><span>⚠️</span><span>埋め込み環境のため画面直接録画に制限があります。<strong>「動画ファイル読込」</strong>または<strong>「デモ体験」</strong>をご利用ください。</span></div>
       <button onclick="document.getElementById('sandbox-banner').remove()" class="text-amber-500 hover:text-amber-800 font-bold px-2 text-sm">&times;</button>
@@ -157,7 +157,7 @@
               <input type="file" id="video-file-input" accept="video/*" class="hidden">
             </div>
 
-            <!-- 🔄 動画ファイルアタッチ要求エリア (保管フォルダから開いた時用) -->
+            <!-- 🔄 動画ファイルアタッチ要求エリア -->
             <div id="video-attach-prompt" class="absolute inset-0 bg-slate-950/95 z-20 hidden flex-col items-center justify-center p-6 text-center">
               <div class="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mb-4">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,24 +228,36 @@
           </div>
         </div>
 
-        <!-- 右側：タイムライン＆メモエリア -->
+        <!-- 右側：タイムライン＆メモエリア (✨ 手順書レベルアップ版) -->
         <div class="lg:w-5/12 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-700 flex items-center gap-1">📌 編集タイムライン</span>
-            <button id="clear-timeline-btn" class="text-[11px] text-red-500 font-medium">クリア</button>
+          
+          <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex flex-col gap-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-700 flex items-center gap-1">📌 マニュアル情報とタイムライン</span>
+              <button id="clear-timeline-btn" class="text-[11px] text-red-500 hover:text-red-700 font-bold transition-colors">全消去</button>
+            </div>
+            <!-- 🚨追加: マニュアルの全体タイトルをいつでも編集可能に -->
+            <input type="text" id="workspace-manual-title" class="w-full border border-slate-200 rounded-lg p-2.5 text-sm font-bold text-slate-800 focus:outline-none focus:border-brand-500 bg-white placeholder:text-slate-300 shadow-sm" placeholder="マニュアルのタイトルを入力 (例: 経費精算の手順)">
           </div>
-          <div class="flex-1 overflow-y-auto p-4 space-y-3 max-h-[360px]" id="timeline-container">
-            <div id="timeline-placeholder" class="text-center py-12 text-slate-400 text-xs">タイムラインは空です。動画を動かしてメモを記録してください。</div>
+
+          <div class="flex-1 overflow-y-auto p-4 space-y-4 max-h-[340px]" id="timeline-container">
+            <div id="timeline-placeholder" class="text-center py-12 text-slate-400 text-xs">タイムラインは空です。動画を動かして手順やメモを記録してください。</div>
           </div>
+
           <div class="border-t border-slate-200 p-3 bg-slate-50">
             <div class="flex gap-1.5 mb-2 overflow-x-auto pb-1">
-              <button data-tag="memo" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-700 border border-brand-200 scale-105">📝 メモ</button>
-              <button data-tag="important" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">⚠️ コツ</button>
-              <button data-tag="step" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">⚙️ 手順</button>
+              <button data-tag="step" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-700 border border-brand-200 scale-105 font-bold">⚙️ 手順ステップ</button>
+              <button data-tag="important" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">⚠️ コツ・注意</button>
+              <button data-tag="memo" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">📝 補足メモ</button>
             </div>
-            <div class="relative">
-              <textarea id="memo-input" disabled rows="2" class="w-full border rounded-xl p-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none pr-12 bg-slate-100 cursor-not-allowed" placeholder="動画を設定すると入力できます..."></textarea>
-              <button id="add-memo-btn" disabled class="absolute bottom-2 right-2 bg-brand-600 text-white p-1.5 rounded-lg disabled:bg-slate-300"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg></button>
+            <div class="relative flex flex-col gap-2">
+              <!-- 🚨追加: ステップの「見出し」入力欄 -->
+              <input type="text" id="memo-title-input" disabled class="w-full border rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-100 cursor-not-allowed placeholder:font-normal" placeholder="見出し (例: ログイン画面を開く)">
+              
+              <div class="relative">
+                <textarea id="memo-input" disabled rows="2" class="w-full border rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none pr-12 bg-slate-100 cursor-not-allowed" placeholder="詳細な手順やコツを入力..."></textarea>
+                <button id="add-memo-btn" disabled class="absolute bottom-2 right-2 bg-brand-600 text-white p-1.5 rounded-lg disabled:bg-slate-300 shadow-sm transition-transform active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg></button>
+              </div>
             </div>
           </div>
         </div>
@@ -302,14 +314,13 @@
       <div class="space-y-3 text-xs">
         <div>
           <label class="block font-bold text-slate-700 mb-1">マニュアル名 / タイトル</label>
-          <input type="text" id="modal-manual-title" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="例: クラウド設定変更と再起動の手順">
+          <input type="text" id="modal-manual-title" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 font-bold" placeholder="例: クラウド設定変更と再起動の手順">
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">格納するフォルダの選択</label>
           <select id="modal-manual-folder" class="w-full border rounded-xl p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
           </select>
         </div>
-        <!-- 🎥 動画リンクまたは名前情報 -->
         <div>
           <label class="block font-bold text-slate-700 mb-1">動画アタッチ用ファイル名 (自動記録)</label>
           <input type="text" id="modal-video-name" readonly class="w-full border bg-slate-50 text-slate-400 rounded-xl p-2.5" placeholder="動画がありません">
@@ -340,7 +351,6 @@
         <button id="share-tab-embed" class="flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center">パターンB：Notion内にこのアプリを埋め込む</button>
       </div>
 
-      <!-- パターンA：直接ペースト -->
       <div id="share-panel-copy" class="space-y-4 text-xs">
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 leading-relaxed text-slate-600">
           現在、GitHub Pagesでパブリックにホストしているため、Notionにも簡単にアプリを埋め込めますが、<strong>最も手軽なのは以下のNotion最適化テキストを直接コピペして文書化することです！</strong>
@@ -363,7 +373,6 @@
         </div>
       </div>
 
-      <!-- パターンB：完全にアプリを埋め込む -->
       <div id="share-panel-embed" class="space-y-4 text-xs hidden">
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 leading-relaxed text-slate-600">
           Notionの「/embed」に以下のデプロイURLを入力すると、この動画時間連動プレイヤー自体をNotion上で同期再生可能になります。
@@ -411,7 +420,7 @@
             <input type="text" id="settings-dir-name" readonly class="flex-1 border bg-slate-50 text-slate-500 rounded-xl p-2 focus:outline-none text-[10px]" placeholder="未設定 (毎回ダイアログ表示)">
             <button id="select-dir-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-3 py-2 rounded-xl whitespace-nowrap transition-all shadow-sm">フォルダ選択</button>
           </div>
-          <p class="text-[9px] text-slate-400 mt-1">※設定すると、録画終了時にこのフォルダへ動画が自動・直接保存されます。</p>
+          <p class="text-[9px] text-slate-400 mt-1">※設定すると、録画終了時にこのフォルダへ動画が自動・直接保存されます。<br><span class="text-brand-600">💡 Googleドライブを選ぶ場合：ダイアログ左側の「PC」をクリックし、そこから Google Drive (G:) などをお選びください。</span></p>
         </div>
       </div>
       <div class="flex justify-end gap-2 text-xs font-semibold">
@@ -895,11 +904,11 @@
             videoName: 'dashboard_capture.mp4',
             videoUrl: '',
             timeline: [
-              { id: '1', time: 0, text: 'マニュアル収録の開始。', type: 'system' },
-              { id: '2', time: 3, text: 'サイドバーからユーザー管理画面を展開して、アクティブノードを確認します。', type: 'step' },
-              { id: '3', time: 7, text: 'システム環境設定を開きます。アドレス重複エラーに要注意。', type: 'important' },
-              { id: '4', time: 11, text: '保存ボタンを押すとポップアップが出現します。', type: 'step' },
-              { id: '5', time: 15, text: '警告は無視して続行を選択し、ネットワーク全体をリブート確定します。', type: 'important' }
+              { id: '1', time: 0, title: 'マニュアル収録の開始', text: '操作の収録を開始しました。', type: 'system' },
+              { id: '2', time: 3, title: 'ユーザー管理画面を開く', text: 'サイドバーからユーザー管理画面を展開して、アクティブノードを確認します。', type: 'step' },
+              { id: '3', time: 7, title: '環境設定での注意点', text: 'システム環境設定を開きます。アドレス重複エラーに要注意。', type: 'important' },
+              { id: '4', time: 11, title: '設定の保存', text: '保存ボタンを押すとポップアップが出現します。', type: 'step' },
+              { id: '5', time: 15, title: 'リブートの実行', text: '警告は無視して続行を選択し、ネットワーク全体をリブート確定します。', type: 'important' }
             ]
           }
         ];
@@ -926,7 +935,7 @@
     let isDemoMode = false;
     let startTime = null;
     let timerInterval = null;
-    let activeTag = 'memo';
+    let activeTag = 'step'; // 🚨 デフォルトを「手順ステップ」に変更
     let currentSelectedFolderId = 'f-all';
     
     let currentVideoFileInfo = {
@@ -940,7 +949,6 @@
     let currentTimelineData = [];
     let activeEditingManualId = null;
     
-    // 巨大な動画Blobオブジェクトを一時的にメモリ保持する変数
     let activeVideoBlob = null;
 
     // --- ドラッグ&ドロップ & インポート処理 ---
@@ -985,7 +993,7 @@
     function handleVideoFileImport(file) {
       isImportMode = true; isRecording = false; isDemoMode = false; stopTimer();
       
-      activeVideoBlob = file; // 後ほどIndexedDBに格納するためにBlobを一時保持
+      activeVideoBlob = file; 
       currentVideoFileInfo.name = file.name;
       currentVideoFileInfo.size = file.size;
       currentVideoFileInfo.url = URL.createObjectURL(file);
@@ -1013,12 +1021,19 @@
       setText('status-text', "動画インポート完了");
       setText('audio-status', "動画を再生・確認しながら時間連動の解説マニュアルを作成できます");
 
+      // UI状態の更新 (タイトルとメモ入力の活性化)
+      const memoTitleIn = getEl('memo-title-input');
       const memoIn = getEl('memo-input');
+      if (memoTitleIn) {
+        memoTitleIn.disabled = false;
+        memoTitleIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
+        memoTitleIn.classList.add('bg-white');
+      }
       if (memoIn) {
         memoIn.disabled = false;
-        memoIn.classList.remove('bg-slate-200', 'text-slate-500', 'cursor-not-allowed');
+        memoIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
         memoIn.classList.add('bg-white', 'text-slate-900');
-        memoIn.placeholder = "動画を見ながら、手順やコツをここに入力して送信...";
+        memoIn.placeholder = "詳細な手順やコツを入力...";
       }
       setProp('add-memo-btn', 'disabled', false);
 
@@ -1030,9 +1045,10 @@
       
       if (activeEditingManualId === null) {
         currentTimelineData = [];
-        addTimelineItem(0, `操作マニュアル動画「${file.name}」をインポートしました。`, "system");
+        addTimelineItem(0, "インポート完了", `操作マニュアル動画「${file.name}」をインポートしました。`, "system");
+        setVal('workspace-manual-title', "インポートしたマニュアル");
       } else {
-        addTimelineItem(getVideoCurrentTime(), `新しい動画「${file.name}」がアタッチされました。`, "system");
+        addTimelineItem(getVideoCurrentTime(), "動画アタッチ完了", `新しい動画「${file.name}」がアタッチされました。`, "system");
       }
       
       removeClass('save-library-banner', 'hidden');
@@ -1050,7 +1066,7 @@
     });
 
     function handleVideoFileAttach(file) {
-      activeVideoBlob = file; // アタッチ時も同様にメモリ保持
+      activeVideoBlob = file; 
       currentVideoFileInfo.name = file.name;
       currentVideoFileInfo.size = file.size;
       currentVideoFileInfo.url = URL.createObjectURL(file);
@@ -1073,12 +1089,17 @@
         };
       }
 
+      const memoTitleIn = getEl('memo-title-input');
       const memoIn = getEl('memo-input');
+      if (memoTitleIn) {
+        memoTitleIn.disabled = false;
+        memoTitleIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
+        memoTitleIn.classList.add('bg-white');
+      }
       if (memoIn) {
         memoIn.disabled = false;
-        memoIn.classList.remove('bg-slate-200', 'text-slate-500', 'cursor-not-allowed');
+        memoIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
         memoIn.classList.add('bg-white', 'text-slate-900');
-        memoIn.placeholder = "アタッチが完了しました。手順の再編集が可能です。";
       }
       setProp('add-memo-btn', 'disabled', false);
 
@@ -1109,12 +1130,17 @@
       
       setText('status-text', "デモ稼働中");
 
+      const memoTitleIn = getEl('memo-title-input');
       const memoIn = getEl('memo-input');
+      if (memoTitleIn) {
+        memoTitleIn.disabled = false;
+        memoTitleIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
+        memoTitleIn.classList.add('bg-white');
+      }
       if (memoIn) {
         memoIn.disabled = false;
-        memoIn.classList.remove('bg-slate-200', 'text-slate-500', 'cursor-not-allowed');
+        memoIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
         memoIn.classList.add('bg-white', 'text-slate-900');
-        memoIn.placeholder = "メモを入れて送信すると時間連動の実験ができます...";
       }
       setProp('add-memo-btn', 'disabled', false);
 
@@ -1131,7 +1157,7 @@
           setProp('demo-side-users', 'className', "p-1 bg-brand-600 text-white rounded font-medium");
           setText('demo-content-title', "👥 登録メンバー名簿一覧");
           setText('demo-content-desc', "組織のアクティブメンバーデータベース");
-          addTimelineItem(3, "【操作手順】サイドナビゲーションから「ユーザー管理」画面を展開します。", "step");
+          addTimelineItem(3, "ユーザー管理画面の展開", "サイドナビゲーションから「ユーザー管理」画面を展開します。", "step");
         }
         if (demoTime === 6) animateVirtualCursor('42%', '15%');
         if (demoTime === 7) {
@@ -1140,24 +1166,25 @@
           setProp('demo-side-settings', 'className', "p-1 bg-brand-600 text-white rounded font-medium");
           setText('demo-content-title', "⚙️ システム環境設定");
           setText('demo-content-desc', "基本構成クラスパラメーターの変更ノード。");
-          addTimelineItem(7, "【操作手順】「システム環境設定」を選択し、構成アドレスパラメータを開きます。", "step");
+          addTimelineItem(7, "環境設定の確認", "「システム環境設定」を選択し、構成アドレスパラメータを開きます。", "step");
         }
         if (demoTime === 10) animateVirtualCursor('82%', '75%');
         if (demoTime === 11) {
           createClickRipple();
           removeClass('demo-dialog', 'hidden');
-          addTimelineItem(11, "設定保存を押すとシステムよりリブート警告ダイアログが表示されます。", "important");
+          addTimelineItem(11, "リブート警告ダイアログ", "設定保存を押すとシステムよりリブート警告ダイアログが表示されます。", "important");
         }
         if (demoTime === 14) animateVirtualCursor('44%', '58%');
         if (demoTime === 15) {
           createClickRipple();
           addClass('demo-dialog', 'hidden');
-          addTimelineItem(15, "警告内容を確認の上、「続行」ボタンを押して全体の適用リブートを確定させます。", "important");
+          addTimelineItem(15, "リブートの確定", "警告内容を確認の上、「続行」ボタンを押して全体の適用リブートを確定させます。", "important");
         }
       }, 1000);
 
       currentTimelineData = [];
-      addTimelineItem(0, "マニュアル生成の擬似シミュレーションを開始しました。", "system");
+      addTimelineItem(0, "シミュレーション開始", "マニュアル生成の擬似シミュレーションを開始しました。", "system");
+      setVal('workspace-manual-title', "クラウド設定変更マニュアル");
       removeClass('save-library-banner', 'hidden');
       showToast("疑似デモを開始しました。右側の連動動作をご確認ください！");
     }
@@ -1191,7 +1218,6 @@
 
     // 🚨 画面録画データをGoogleドライブ等のローカル同期フォルダに直接保存する処理
     async function saveCapturedVideoDirectly(blob, defaultName) {
-      // 1. デフォルトフォルダが設定されているか確認し、直接サイレント保存を試みる
       try {
         const dirData = await getDirHandle();
         if (dirData && dirData.handle) {
@@ -1203,21 +1229,19 @@
             await writable.close();
             
             showToast(`📁 Googleドライブ等の指定フォルダ「${dirData.name}」へ直接自動保存しました！`);
-            return dirData.name + "/" + defaultName; // 推測されるパスや名前を返す
+            return dirData.name + "/" + defaultName; 
           }
         }
       } catch (err) {
         console.warn("デフォルトフォルダへの自動保存に失敗しました。通常の保存ダイアログへフォールバックします。", err);
       }
 
-      // 2. デフォルトフォルダがない、またはエラーになった場合は従来のダイアログ表示へ
       if ('showSaveFilePicker' in window) {
         try {
           const options = {
             suggestedName: defaultName,
             types: [{ description: 'Video File', accept: { 'video/webm': ['.webm'] } }]
           };
-          // フォルダ選択＆ファイル命名用のOS標準セーブダイアログを開く
           const fileHandle = await window.showSaveFilePicker(options);
           const writable = await fileHandle.createWritable();
           await writable.write(blob);
@@ -1232,7 +1256,6 @@
         }
       }
       
-      // 3. 非対応ブラウザ、またはキャンセル時のフォールバック（通常のBlobダウンロード）
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1242,7 +1265,7 @@
       return a.download;
     }
 
-    // --- 🚨要件①・③ 完全対応: 画面録画とブラウザ上での確実な動画実体化・再閲覧機能 ---
+    // --- 🚨 画面録画とブラウザ上での動画実体化・再閲覧機能 ---
     onEvent('start-btn', 'click', async () => {
       try {
         recordedChunks = []; 
@@ -1256,13 +1279,12 @@
         const vp = getEl('video-preview');
         if (vp) {
           vp.srcObject = screenStream;
-          vp.muted = true; // 録画中のハウリング防止
+          vp.muted = true;
           vp.play();
         }
         removeClass('video-preview', 'hidden');
         addClass('video-placeholder', 'hidden');
         
-        // 録画エンジンの完全初期化
         mediaRecorder = new MediaRecorder(screenStream, { mimeType: 'video/webm; codecs=vp9' });
         mediaRecorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) {
@@ -1270,10 +1292,9 @@
           }
         };
         
-        // 録画停止時の完全な動画生成プロセス
         mediaRecorder.onstop = async () => {
           const blob = new Blob(recordedChunks, { type: 'video/webm' });
-          activeVideoBlob = blob; // IndexedDB保存用＆再閲覧用に動画実体をセット
+          activeVideoBlob = blob; 
           
           const objectUrl = URL.createObjectURL(blob);
           const defaultFileName = "Manual_Recording_" + getFormattedDate() + ".webm";
@@ -1282,15 +1303,13 @@
           currentVideoFileInfo.url = objectUrl;
           currentVideoFileInfo.size = blob.size;
 
-          // 要件③: ブラウザ上で再度マニュアル動画を閲覧できるようにプレビューをライブから録画データに切り替え
           if (vp) {
             vp.srcObject = null;
             vp.src = objectUrl;
             vp.controls = true;
-            vp.muted = false; // 再生時は音を出す
+            vp.muted = false; 
           }
           
-          // 要件②: 録画停止後、手戻りがないようにOSの保存ダイアログ(または固定フォルダ)を開き保存を促す
           const savedName = await saveCapturedVideoDirectly(blob, defaultFileName);
           if (savedName) {
             setVal('modal-video-name', savedName);
@@ -1303,7 +1322,6 @@
           showToast("収録完了。ブラウザ上で再度動画を閲覧・確認できるようになりました！");
         };
 
-        // 録画の開始
         mediaRecorder.start(1000);
         
         isRecording = true; 
@@ -1311,8 +1329,9 @@
         updateUIState(true);
         currentVideoFileInfo.name = "Recording_" + getFormattedDate() + ".webm";
         
-        currentTimelineData = []; // 録画開始時にタイムラインを初期化
-        addTimelineItem(0, "マニュアル動画のキャプチャ収録を開始しました。", "system");
+        currentTimelineData = []; 
+        addTimelineItem(0, "収録の開始", "マニュアル動画のキャプチャ収録を開始しました。", "system");
+        setVal('workspace-manual-title', "新規録画マニュアル");
         
       } catch (err) {
         console.warn("Screen Capture Restricted. Open Fallback UI.", err);
@@ -1337,14 +1356,15 @@
     const timelinePlaceholder = document.getElementById('timeline-placeholder');
     const clearTimelineBtn = document.getElementById('clear-timeline-btn');
     
+    const memoTitleInput = document.getElementById('memo-title-input');
     const memoInput = document.getElementById('memo-input');
     const addMemoBtn = document.getElementById('add-memo-btn');
     const tagButtons = document.querySelectorAll('.tag-btn');
     const saveLibraryBanner = document.getElementById('save-library-banner');
 
-    // --- タイムライン制御コア ---
-    function addTimelineItem(time, text, type) {
-      currentTimelineData.push({ id: Date.now() + Math.random().toString(36).substr(2,5), time, text, type });
+    // --- 🚨 手順書レベルアップ：タイムライン制御コア ---
+    function addTimelineItem(time, title, text, type) {
+      currentTimelineData.push({ id: Date.now() + Math.random().toString(36).substr(2,5), time, title, text, type });
       currentTimelineData.sort((a,b) => a.time - b.time);
       renderTimeline();
     }
@@ -1361,23 +1381,37 @@
         tc.querySelectorAll('.timeline-item-row').forEach(el => el.remove());
       }
 
+      let stepCount = 1;
+
       currentTimelineData.forEach(item => {
         const row = document.createElement('div');
-        row.className = 'timeline-item-row flex gap-2 relative border-l pl-3 pb-2 border-slate-200 text-xs';
-        let icon = '📝';
-        if (item.type === 'important') icon = '⚠️';
-        if (item.type === 'step') icon = '⚙️';
-        if (item.type === 'transcript') icon = '🎙️';
-        if (item.type === 'system') icon = '🤖';
+        row.className = 'timeline-item-row flex gap-2 relative border-l-2 pl-3 pb-4 border-slate-200 text-xs hover:border-brand-300 transition-colors group';
+        
+        let iconHtml = '';
+        if (item.type === 'important') {
+          iconHtml = '⚠️ コツ・注意';
+        } else if (item.type === 'transcript') {
+          iconHtml = '🎙️ 音声';
+        } else if (item.type === 'system') {
+          iconHtml = '🤖 補足';
+        } else if (item.type === 'step') {
+          iconHtml = `<span class="text-brand-600">⚙️ ステップ ${stepCount}</span>`;
+          stepCount++;
+        } else {
+          iconHtml = '📝 メモ';
+        }
 
         row.innerHTML = `
-          <div class="absolute -left-[4.5px] top-1 w-2 h-2 rounded-full bg-slate-300"></div>
-          <div class="flex-1 flex flex-col gap-0.5">
+          <div class="absolute -left-[5.5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 group-hover:bg-brand-400 transition-colors"></div>
+          <div class="flex-1 flex flex-col gap-1.5">
             <div class="flex items-center gap-2">
-              <span class="bg-brand-50 text-brand-700 font-mono text-[10px] px-1 rounded font-bold cursor-pointer stamp-jump" data-time="${item.time}">⏱️ ${formatTime(item.time)}</span>
-              <span class="text-[9px] text-slate-400">${icon}</span>
+              <span class="bg-brand-50 text-brand-700 font-mono text-[10px] px-1.5 py-0.5 rounded font-bold cursor-pointer stamp-jump hover:bg-brand-100 transition-colors shadow-sm" data-time="${item.time}">⏱️ ${formatTime(item.time)}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">${iconHtml}</span>
             </div>
-            <p class="text-slate-700 font-light focus:bg-white outline-none edit-txt-node" contenteditable="true" data-id="${item.id}">${item.text}</p>
+            <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm group-hover:shadow-md transition-shadow">
+              <input type="text" class="w-full font-bold text-sm text-slate-800 focus:outline-none focus:border-b-2 border-brand-500 bg-transparent edit-title-node placeholder:text-slate-300 placeholder:font-normal" data-id="${item.id}" value="${item.title || ''}" placeholder="見出しを追加">
+              <textarea class="w-full mt-1.5 text-xs text-slate-600 focus:outline-none focus:border-b-2 border-brand-500 resize-none bg-transparent edit-txt-node placeholder:text-slate-300" data-id="${item.id}" rows="2" placeholder="詳細な手順や補足を入力...">${item.text}</textarea>
+            </div>
           </div>
         `;
         if (tc) tc.appendChild(row);
@@ -1399,32 +1433,56 @@
           });
         });
         
-        // リアルタイムテキスト書き換えインプレース
+        // 🚨 インプレース直接編集 (タイトル＆詳細)
+        tc.querySelectorAll('.edit-title-node').forEach(inp => {
+          inp.addEventListener('blur', () => {
+            const id = inp.getAttribute('data-id');
+            const item = currentTimelineData.find(i => i.id === id);
+            if (item) item.title = inp.value.trim();
+          });
+        });
+
         tc.querySelectorAll('.edit-txt-node').forEach(p => {
           p.addEventListener('blur', () => {
             const id = p.getAttribute('data-id');
             const item = currentTimelineData.find(i => i.id === id);
-            if (item) item.text = p.innerText.trim();
+            if (item) item.text = p.value.trim();
           });
         });
+
         tc.scrollTop = tc.scrollHeight;
       }
     }
 
     // --- メモ送信コア ---
     function sendMemo() {
-      const v = getVal('memo-input').trim(); if (!v) return;
-      addTimelineItem(getCurrentTimestamp(), v, activeTag);
+      const titleVal = getVal('memo-title-input').trim();
+      const textVal = getVal('memo-input').trim(); 
+      if (!textVal && !titleVal) return; // 両方空なら無視
+      
+      addTimelineItem(getCurrentTimestamp(), titleVal, textVal, activeTag);
+      
+      setVal('memo-title-input', '');
       setVal('memo-input', '');
+      if (getEl('memo-title-input')) getEl('memo-title-input').focus();
     }
     
     onEvent('add-memo-btn', 'click', sendMemo);
     onEvent('memo-input', 'keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMemo();
     });
+    onEvent('memo-title-input', 'keydown', (e) => {
+      if (e.key === 'Enter') {
+        if (e.ctrlKey || e.metaKey) sendMemo();
+        else if (getEl('memo-input')) getEl('memo-input').focus();
+      }
+    });
+
     onEvent('clear-timeline-btn', 'click', () => {
-      currentTimelineData = [];
-      renderTimeline();
+      if(confirm('タイムラインのすべての項目を消去しますか？')) {
+        currentTimelineData = [];
+        renderTimeline();
+      }
     });
 
     // タグ選択のイベントバインド
@@ -1433,14 +1491,17 @@
         btn.addEventListener('click', () => {
           tagButtons.forEach(b => b.className = "tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600");
           activeTag = btn.getAttribute('data-tag');
-          btn.className = `tag-btn text-[10px] px-2.5 py-0.5 rounded-full scale-105 font-bold ${activeTag==='memo'?'bg-brand-100 text-brand-700':activeTag==='important'?'bg-amber-100 text-amber-700':'bg-emerald-100 text-emerald-700'}`;
+          btn.className = `tag-btn text-[10px] px-2.5 py-0.5 rounded-full scale-105 font-bold ${activeTag==='step'?'bg-brand-100 text-brand-700':activeTag==='important'?'bg-amber-100 text-amber-700':'bg-slate-200 text-slate-800'}`;
         });
       });
     }
 
     // --- 📦 ライブラリ保管＆フォルダ管理ロジック ---
     onEvent('open-save-modal-btn', 'click', () => {
-      setVal('modal-manual-title', isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書");
+      // ワークスペース上の全体タイトルをモーダルに引き継ぐ
+      const currentWorkspaceTitle = getVal('workspace-manual-title').trim();
+      setVal('modal-manual-title', currentWorkspaceTitle || (isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書"));
+      
       setHtml('modal-manual-folder', db.folders.filter(f => f.id !== 'f-all').map(f => `<option value="${f.id}">${f.name}</option>`).join(''));
       
       setVal('modal-video-name', currentVideoFileInfo.name || "アタッチ動画なし");
@@ -1592,6 +1653,10 @@
       currentTimelineData = [...m.timeline];
       
       resetToInitial();
+      
+      // 🚨 ワークスペースのタイトルにマニュアル名を復元
+      setVal('workspace-manual-title', m.title);
+      
       renderTimeline();
 
       // IndexedDBから動画Blobデータの自動復元を非同期実行
@@ -1680,19 +1745,29 @@
       const simulatedShareUrl = `${baseAppUrl}?id=${m.id}&p=${systemSettings.passcode}`;
       setVal('share-url-input', simulatedShareUrl);
 
-      // Notionコピペトグルテキストの生成
+      // 🚨 Notionコピペトグルテキストの生成 (タイトル見出し対応)
       let notionMd = `### 📄 ${m.title}\n`;
       notionMd += `*作成日: ${m.createdAt}*\n\n`;
       notionMd += `> 💡 **ManuReco タイムスタンプガイド:** 各項目に付与されたタイムスタンプ（例 \`[01:12]\`）は、動画マニュアルの再生時間を指しています。\n\n`;
       
+      let stepCounter = 1;
       m.timeline.forEach(t => {
         if (t.type === 'system') return;
+        
         let emoji = '📝 【メモ】';
         if (t.type === 'important') emoji = '⚠️ 【重要・コツ】';
-        if (t.type === 'step') emoji = '⚙️ 【操作手順】';
         if (t.type === 'transcript') emoji = '🎙️ 【音声書き起こし】';
+        if (t.type === 'step') {
+          emoji = `⚙️ 【ステップ ${stepCounter}】`;
+          stepCounter++;
+        }
 
-        notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji}\n`;
+        // 見出し（タイトル）がある場合はMarkdownの太字で挿入
+        if (t.title) {
+          notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji} **${t.title}**\n`;
+        } else {
+          notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji}\n`;
+        }
         notionMd += `>> ${t.text}\n\n`;
       });
 
@@ -1753,16 +1828,21 @@
       
       const pmt = getEl('preview-modal-timeline');
       if (pmt) {
+        let sc = 1;
         pmt.innerHTML = m.timeline.map(t => {
           let tagB = '📝 メモ';
           if (t.type==='important') tagB = '⚠️ コツ';
-          if (t.type==='step') tagB = '⚙️ 手順';
           if (t.type==='transcript') tagB = '🎙️ 音声';
           if (t.type==='system') tagB = '🤖 補足';
+          if (t.type==='step') { tagB = `⚙️ ステップ ${sc}`; sc++; }
+          
+          let titleHtml = t.title ? `<h5 class="font-bold text-slate-800 text-sm mb-1">${t.title}</h5>` : '';
+          
           return `
-            <div class="p-2.5 bg-slate-50 border rounded-lg text-xs flex flex-col gap-1">
-              <div class="flex items-center gap-2"><span class="font-mono bg-brand-50 text-brand-700 px-1 rounded font-bold">⏱️ ${formatTime(t.time)}</span><span class="text-[10px] text-slate-400">${tagB}</span></div>
-              <p class="text-slate-700 font-light">${t.text}</p>
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex flex-col gap-1.5 shadow-sm">
+              <div class="flex items-center gap-2 mb-1"><span class="font-mono bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded font-bold border border-brand-100">⏱️ ${formatTime(t.time)}</span><span class="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border">${tagB}</span></div>
+              ${titleHtml}
+              <p class="text-slate-600 font-medium leading-relaxed">${t.text}</p>
             </div>
           `;
         }).join('');
@@ -1785,13 +1865,21 @@
         stBtn.className = `p-2.5 rounded-xl text-xs font-bold ${rec?'bg-red-600 text-white':'bg-white border border-slate-200 text-slate-400 cursor-not-allowed'}`;
       }
       
+      const memoTitleIn = getEl('memo-title-input');
       const memoIn = getEl('memo-input');
+      
+      if (memoTitleIn) {
+        memoTitleIn.disabled = false;
+        memoTitleIn.classList.remove('bg-slate-100','cursor-not-allowed');
+        memoTitleIn.classList.add('bg-white');
+      }
       if (memoIn) {
         memoIn.disabled = false;
         memoIn.classList.remove('bg-slate-100','cursor-not-allowed');
-        memoIn.classList.add('bg-white');
-        memoIn.placeholder = "手順をここに入力して送信...";
+        memoIn.classList.add('bg-white', 'text-slate-900');
+        memoIn.placeholder = "詳細な手順やコツを入力...";
       }
+      
       setProp('add-memo-btn', 'disabled', false);
       
       const si = getEl('status-indicator');
@@ -1810,18 +1898,34 @@
       if (si) si.className = "w-3.5 h-3.5 rounded-full bg-slate-300";
       setText('status-text', "準備完了");
       
+      const memoTitleIn = getEl('memo-title-input');
       const memoIn = getEl('memo-input');
+      
+      if (memoTitleIn) {
+        memoTitleIn.disabled = true;
+        memoTitleIn.classList.add('bg-slate-100','cursor-not-allowed');
+        memoTitleIn.classList.remove('bg-white');
+      }
       if (memoIn) {
         memoIn.disabled = true;
         memoIn.classList.add('bg-slate-100','cursor-not-allowed');
+        memoIn.classList.remove('bg-white', 'text-slate-900');
         memoIn.placeholder = "動画を設定すると入力できます...";
       }
       setProp('add-memo-btn', 'disabled', true);
+      
+      setVal('workspace-manual-title', ''); // タイトルリセット
       
       addClass('video-preview', 'hidden');
       removeClass('video-placeholder', 'hidden');
       addClass('video-attach-prompt', 'hidden');
       addClass('recording-overlay', 'opacity-0');
+    }
+
+    // 要素オブジェクトのプロパティ設定ヘルパー
+    function setProp(id, propName, value) {
+      const el = getEl(id);
+      if (el) el[propName] = value;
     }
 
     // セッション認証＆初期ロード実行
