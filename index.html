@@ -399,7 +399,7 @@
           <label class="block font-bold text-slate-700 mb-1">🔗 このマニュアルの共有リンク</label>
           <div class="flex gap-1.5">
             <input type="text" id="share-url-input" readonly class="w-full border bg-slate-50 rounded-xl p-3 font-mono text-[11px] text-slate-600 focus:outline-none">
-            <button id="copy-url-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 rounded-xl font-bold whitespace-nowrap shadow-sm transition-colors">コピー</button>
+            <button id="copy-url-btn" onclick="window.copyTextToClipboard('share-url-input', '専用リンクのURLをコピーしました！')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 rounded-xl font-bold whitespace-nowrap shadow-sm">コピー</button>
           </div>
           <p class="text-[9px] text-slate-400 mt-1">※このURLをチームメンバーに送ることで、マニュアルプレイヤーを共有できます。</p>
         </div>
@@ -413,9 +413,9 @@
             チャットツールやドキュメントに貼り付けてご利用ください。
           </div>
           <div class="flex flex-col gap-2">
-            <textarea id="notion-markdown-output" readonly rows="8" class="w-full border bg-slate-50 rounded-xl p-3 font-medium text-xs text-slate-700 resize-none leading-relaxed focus:outline-none focus:border-brand-300"></textarea>
-            <button id="copy-notion-md-btn" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-colors self-end shadow-sm">
-              ✨ テキストを丸ごとコピー
+            <textarea id="notion-markdown-output" readonly rows="4" class="w-full border bg-slate-50 rounded-xl p-2.5 font-mono text-[10px] text-slate-600 resize-none"></textarea>
+            <button id="copy-notion-md-btn" onclick="window.copyTextToClipboard('notion-markdown-output', 'テキストをコピーしました！')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-1.5 transition-colors self-end shadow-sm">
+              テキストをコピー
             </button>
           </div>
         </div>
@@ -632,6 +632,32 @@
       setTimeout(() => { if (t) { t.classList.add('opacity-0'); setTimeout(() => t.remove(), 300); } }, 3000);
     }
     window.showToast = showToast;
+
+    // --- 📋 クリップボードコピー ---
+    window.copyTextToClipboard = function(elementId, successMsg) {
+      const el = getEl(elementId);
+      if (!el) return;
+      
+      el.select();
+      el.setSelectionRange(0, 99999); // Mobile
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showToast(successMsg);
+        } else {
+           if (navigator.clipboard) {
+              navigator.clipboard.writeText(el.value).then(() => showToast(successMsg)).catch(e => showToast("コピーに失敗しました"));
+           }
+        }
+      } catch (err) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(el.value).then(() => showToast(successMsg)).catch(e => showToast("コピーに失敗しました"));
+        } else {
+            showToast("コピーに失敗しました");
+        }
+      }
+      window.getSelection().removeAllRanges();
+    };
 
     // --- 📦 IndexedDB 動画ストレージ＆設定管理 ---
     const DB_NAME = 'manureco_videos_db';
@@ -1650,11 +1676,6 @@
       onEvent('close-share-modal-btn', 'click', () => addClass('share-modal', 'hidden'));
       onEvent('close-fallback-btn', 'click', () => addClass('fallback-modal', 'hidden'));
       onEvent('close-preview-modal-btn', 'click', () => addClass('preview-modal', 'hidden'));
-      
-      onEvent('copy-notion-md-btn', 'click', () => {
-        const output = getEl('notion-markdown-output');
-        if (output) { output.select(); document.execCommand('copy'); showToast("テキストをコピーしました！"); }
-      });
 
       onEvent('open-settings-btn', 'click', () => {
         setVal('settings-domain-input', window.systemSettings.allowedDomain || '');
