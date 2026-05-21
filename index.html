@@ -303,7 +303,7 @@
               <h3 class="text-xs font-bold text-slate-900 tracking-wider uppercase">📂 フォルダ構造</h3>
               <button id="add-folder-btn" class="text-brand-600 hover:text-brand-800 text-xs font-bold flex items-center gap-0.5">+ 新規</button>
             </div>
-            <div id="folder-list-container" class="space-y-1 max-h-[250px] overflow-y-auto text-xs font-medium">
+            <div id="folder-list-container" class="space-y-1 max-h-[350px] overflow-y-auto text-xs font-medium pr-1">
               </div>
           </div>
         </div>
@@ -354,8 +354,8 @@
         <div class="mt-2 pt-3 border-t border-slate-100">
           <label class="block font-bold text-slate-700 mb-1">公開設定 (Firestore同期)</label>
           <div class="flex gap-4">
-            <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 font-bold"><input type="radio" id="modal-is-shared-no" name="modal-is-shared" value="false" checked class="accent-brand-600"> 🔒 個人用 (自分のみ)</label>
-            <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 font-bold"><input type="radio" id="modal-is-shared-yes" name="modal-is-shared" value="true" class="accent-brand-600"> 🌐 チームに共有</label>
+            <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 font-bold"><input type="radio" id="modal-is-shared-no" name="modal-is-shared" value="false" class="accent-brand-600"> 🔒 個人用 (自分のみ)</label>
+            <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 font-bold"><input type="radio" id="modal-is-shared-yes" name="modal-is-shared" value="true" checked class="accent-brand-600"> 🌐 チームに共有</label>
           </div>
           <p class="text-[9px] text-slate-400 mt-1">※共有すると、同じアプリにログインしているメンバーの「チーム共有」タブに即座に表示されます。</p>
         </div>
@@ -489,7 +489,11 @@
   </div>
 
   <!-- JavaScript -->
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
     // --- 🛡️ 安全なクラス操作・DOM操作ヘルパー ---
     function getEl(id) { return document.getElementById(id); }
 
@@ -586,8 +590,7 @@
     }
     window.getFormattedDate = getFormattedDate;
 
-    // 🚨 修正: タブ切り替え（3タブ対応）
-    let currentView = 'workspace'; // 'workspace', 'library', 'team'
+    let currentView = 'workspace'; 
     function switchView(view) {
       currentView = view;
       const wsBtn = getEl('nav-workspace-btn');
@@ -613,7 +616,7 @@
       }
     }
     window.switchView = switchView;
-    window.toggleTabs = (showWorkspace) => { switchView(showWorkspace ? 'workspace' : 'library'); }; // 下位互換
+    window.toggleTabs = (showWorkspace) => { switchView(showWorkspace ? 'workspace' : 'library'); };
 
     function showToast(msg) {
       const t = document.createElement('div');
@@ -704,7 +707,6 @@
     }
     window.deleteVideoBlob = deleteVideoBlob;
 
-    // デフォルト保存先ディレクトリハンドルの保存と取得
     function saveDirHandle(handle) {
       return new Promise((resolve, reject) => {
         if (!indexedDbInstance) { reject("IndexedDB Error"); return; }
@@ -729,7 +731,6 @@
     }
     window.getDirHandle = getDirHandle;
 
-    // ディレクトリハンドルの権限検証
     function verifyPermission(fileHandle, readWrite) {
       return new Promise(async (resolve) => {
          const opts = {};
@@ -741,7 +742,6 @@
     }
     window.verifyPermission = verifyPermission;
 
-    // ビデオ要素の安全制御
     function playVideo() {
       const vp = getEl('video-preview');
       if (vp && (vp.src || vp.srcObject)) vp.play().catch(e => console.warn("Auto-play blocked or failed:", e));
@@ -785,13 +785,13 @@
     let useFirebase = false;
     let auth, dbFirestore, appId;
     let currentUser = null;
-    let teamManuals = []; // 🚨 チーム共有データ保持用
+    let teamManuals = []; 
 
+    // 🚨 修正: フォルダを階層構造（ツリー）に対応できるように parentId を追加
     window.dbState = {
       folders: [
-        { id: 'f-all', name: '📂 すべてのマニュアル' },
-        { id: 'f-1', name: '📁 IT・システム操作' },
-        { id: 'f-2', name: '📁 総務・基本手続き' }
+        { id: 'f-1', name: '📁 IT・システム操作', parentId: null },
+        { id: 'f-2', name: '📁 総務・基本手続き', parentId: null }
       ],
       manuals: []
     };
@@ -806,7 +806,7 @@
       if (manualId) {
         setTimeout(() => {
           if (typeof window.loadManualToWorkspace === 'function') window.loadManualToWorkspace(manualId);
-        }, 800); // 共有データ読み込み待ちのため少し遅延
+        }, 800); 
       }
     }
     window.bypassLogin = bypassLogin;
@@ -832,14 +832,15 @@
     }
     window.handleGoogleLogin = handleGoogleLogin;
 
-    // --- 📂 データベース(Firestore / LocalStorage)状態管理 ---
     function loadDatabase() {
       if (useFirebase && currentUser && window.firebaseDb) {
-        // 1. 個人のライブラリデータの監視
         const userDocRef = window.firebaseDb.doc(dbFirestore, 'artifacts', appId, 'users', currentUser.uid, 'manureco', 'state');
         window.firebaseDb.onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             window.dbState = docSnap.data();
+            // 古いデータ構造（f-allが含まれている等）へのパッチ
+            if (!window.dbState.folders) window.dbState.folders = [];
+            window.dbState.folders = window.dbState.folders.filter(f => f.id !== 'f-all');
           } else {
             if (typeof window.saveDatabase === 'function') window.saveDatabase(); 
           }
@@ -847,16 +848,12 @@
           if(currentView === 'library' && typeof window.renderLibrary === 'function') window.renderLibrary('library');
         }, (error) => console.error(error));
 
-        // 2. 🚨 チーム共有データの監視
         const sharedColRef = window.firebaseDb.collection(dbFirestore, 'artifacts', appId, 'public', 'data', 'manureco_shared');
         window.firebaseDb.onSnapshot(sharedColRef, (snap) => {
           teamManuals = [];
-          snap.forEach(doc => {
-            teamManuals.push(doc.data());
-          });
+          snap.forEach(doc => { teamManuals.push(doc.data()); });
           if (currentView === 'team' && typeof window.renderLibrary === 'function') window.renderLibrary('team');
         }, err => console.error(err));
-
       } else {
         if (typeof window.loadDatabaseFallback === 'function') window.loadDatabaseFallback();
       }
@@ -878,8 +875,16 @@
     function loadDatabaseFallback() {
       const savedData = localStorage.getItem('manureco_pro_db2');
       if (savedData) {
-        try { window.dbState = JSON.parse(savedData); } catch(e) {}
+        try { 
+          window.dbState = JSON.parse(savedData); 
+          if (!window.dbState.folders) window.dbState.folders = [];
+          window.dbState.folders = window.dbState.folders.filter(f => f.id !== 'f-all');
+        } catch(e) {}
       } else {
+        window.dbState.folders = [
+          { id: 'f-1', name: '📁 IT・システム操作', parentId: null },
+          { id: 'f-2', name: '📁 総務・基本手続き', parentId: null }
+        ];
         window.dbState.manuals = [
           {
             id: 'm-demo-1',
@@ -898,7 +903,6 @@
         saveDatabaseFallback();
       }
       
-      // LocalFallback用 チーム共有のモック
       const savedTeamData = localStorage.getItem('manureco_pro_team');
       if (savedTeamData) {
         try { teamManuals = JSON.parse(savedTeamData); } catch(e) {}
@@ -1005,7 +1009,6 @@
       }
     };
 
-    // --- 🚨 画面録画データを直接保存する処理 ---
     async function saveCapturedVideoDirectly(blob, defaultName) {
       try {
         const dirData = await getDirHandle();
@@ -1047,7 +1050,6 @@
     }
     window.saveCapturedVideoDirectly = saveCapturedVideoDirectly;
 
-    // --- ⚡️ インラインステップ生成コア ---
     function createInlineStep() {
       if (!isRecording && !hasVideoSource() && !isDemoMode) {
         showToast("動画を設定するか、録画を開始してから追加してください。");
@@ -1060,7 +1062,6 @@
       currentTimelineData.sort((a,b) => a.time - b.time);
       renderTimeline();
       
-      // レンダリング後、追加されたタイトルの入力欄に即フォーカス
       setTimeout(() => {
         const newTitleInput = document.querySelector(`.edit-title-node[data-id="${id}"]`);
         if (newTitleInput) newTitleInput.focus();
@@ -1068,7 +1069,6 @@
     }
     window.createInlineStep = createInlineStep;
 
-    // --- タイムライン制御コア ---
     function addTimelineItem(time, title, text, type) {
       currentTimelineData.push({ id: Date.now() + Math.random().toString(36).substr(2,5), time, title, text, type });
       currentTimelineData.sort((a,b) => a.time - b.time);
@@ -1120,7 +1120,6 @@
       });
 
       if (tc) {
-        // インライン追加ボタンの描画
         if (isRecording || hasVideoSource() || isDemoMode) {
           const addBtnRow = document.createElement('div');
           addBtnRow.className = 'inline-add-btn mt-2 p-3 border-2 border-dashed border-slate-200 rounded-xl text-center text-slate-400 hover:text-brand-600 hover:border-brand-400 hover:bg-brand-50 cursor-pointer transition-all text-xs font-bold flex flex-col items-center justify-center gap-1';
@@ -1129,7 +1128,6 @@
           tc.appendChild(addBtnRow);
         }
 
-        // ジャンプ
         tc.querySelectorAll('.stamp-jump').forEach(btn => {
           btn.addEventListener('click', () => {
             const t = parseFloat(btn.getAttribute('data-time'));
@@ -1168,7 +1166,6 @@
           inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleTimeEdit(); }});
         });
 
-        // 🚨 修正: タイトル入力中の Enter で詳細へ移動
         tc.querySelectorAll('.edit-title-node').forEach(inp => {
           inp.addEventListener('blur', () => {
             const id = inp.getAttribute('data-id');
@@ -1196,7 +1193,6 @@
     }
     window.renderTimeline = renderTimeline;
 
-    // 🚨 追加: タイムライン要素の削除機能
     window.deleteTimelineItem = function(id) {
        currentTimelineData = currentTimelineData.filter(i => i.id !== id);
        renderTimeline();
@@ -1213,7 +1209,28 @@
     }
     window.sendMemo = sendMemo;
 
-    // 📁 ライブラリ描画コア (🚨 修正: チーム共有対応)
+    // 🚨 修正: フォルダの階層（ツリー）構造のレンダリング再帰関数
+    function renderFolderTree(folders, sourceManuals, parentId = null, depth = 1) {
+      let treeHtml = '';
+      const children = folders.filter(f => (f.parentId || null) === parentId);
+      children.forEach(f => {
+        const isSelected = f.id === currentSelectedFolderId;
+        const count = sourceManuals.filter(m => m.folderId === f.id).length;
+        const padding = depth * 12; // 階層に応じたインデント
+        
+        treeHtml += `
+          <div class="flex justify-between items-center group py-1.5 pr-2 rounded-lg cursor-pointer font-semibold transition-all ${isSelected ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" style="padding-left: ${padding + 8}px" onclick="window.selectFolder('${f.id}')">
+            <span class="truncate flex items-center gap-1.5"><span class="text-[10px] opacity-50 ${depth===1?'hidden':''} text-slate-400">└</span>${f.name}</span>
+            <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full">${count}</span>
+          </div>
+        `;
+        // 子フォルダを再帰的に描画
+        treeHtml += renderFolderTree(folders, sourceManuals, f.id, depth + 1);
+      });
+      return treeHtml;
+    }
+
+    // 📁 ライブラリ描画コア
     function renderLibrary(mode = currentView) {
       const isTeam = mode === 'team';
       const sourceManuals = isTeam ? teamManuals : window.dbState.manuals;
@@ -1222,23 +1239,23 @@
       const folderSidebar = getEl('folder-sidebar');
       
       if (isTeam) {
-         addClass('folder-sidebar', 'hidden'); // チーム画面ではフォルダツリーを隠す
+         addClass('folder-sidebar', 'hidden'); 
          setText('current-folder-title', '🌐 チーム共有マニュアル');
          setText('current-folder-desc', 'チームメンバー全体に公開されているマニュアル一覧');
       } else {
          removeClass('folder-sidebar', 'hidden');
          setText('current-folder-desc', '保管中の時間連動型WEBマニュアル下書き一覧');
+         
+         // 🚨 修正: フォルダツリーの描画
          if (flc) {
-          flc.innerHTML = window.dbState.folders.map(f => {
-            const isSelected = f.id === currentSelectedFolderId;
-            const count = f.id === 'f-all' ? window.dbState.manuals.length : window.dbState.manuals.filter(m => m.folderId === f.id).length;
-            return `
-              <div class="flex justify-between items-center group p-2 rounded-lg cursor-pointer font-semibold transition-all ${isSelected ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" onclick="window.selectFolder('${f.id}')">
-                <span class="truncate">${f.name}</span>
-                <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full">${count}</span>
-              </div>
-            `;
-          }).join('');
+          let html = `
+            <div class="flex justify-between items-center group py-1.5 px-2 mb-1 rounded-lg cursor-pointer font-semibold transition-all ${currentSelectedFolderId === 'f-all' ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" onclick="window.selectFolder('f-all')">
+              <span class="truncate">📂 すべてのマニュアル</span>
+              <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full">${sourceManuals.length}</span>
+            </div>
+          `;
+          html += renderFolderTree(window.dbState.folders, sourceManuals, null, 1);
+          flc.innerHTML = html;
         }
         const fObj = window.dbState.folders.find(f => f.id === currentSelectedFolderId);
         setText('current-folder-title', fObj ? fObj.name : "一覧");
@@ -1302,7 +1319,6 @@
     window.deleteManual = function(id, e) {
       if (e) e.stopPropagation();
       if(confirm('このマニュアル保管データを完全に削除しますか？')) {
-        // チームと個人の両方から削除を試みる
         window.dbState.manuals = window.dbState.manuals.filter(m => m.id !== id);
         saveDatabase();
         
@@ -1319,7 +1335,6 @@
       }
     };
 
-    // 🔄 ワークスペースにマニュアルをロードする
     window.loadManualToWorkspace = async function(id) {
       const m = window.dbState.manuals.find(manual => manual.id === id) || teamManuals.find(manual => manual.id === id);
       if (!m) return;
@@ -1422,7 +1437,6 @@
       removeClass('share-modal', 'hidden');
     };
 
-    // 詳細プレビュー
     window.openManualPreview = function(id) {
       const m = window.dbState.manuals.find(manual => manual.id === id) || teamManuals.find(manual => manual.id === id);
       if (!m) return;
@@ -1498,24 +1512,17 @@
     // 全イベントリスナーの登録と初期化 (DOM Load後)
     // ==========================================
     window.onload = () => {
-      // 🚨 グローバルショートカットの登録 (爆速インライン入力)
       document.addEventListener('keydown', (e) => {
         if (!isRecording && !hasVideoSource() && !isDemoMode) return;
 
         const targetTag = e.target.tagName.toLowerCase();
         const isInput = targetTag === 'input' || targetTag === 'textarea';
 
-        // 1. テキスト入力中以外に「Enter」で新しいステップを追加
         if (e.key === 'Enter' && !isInput && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          window.createInlineStep();
+          e.preventDefault(); window.createInlineStep();
         }
-
-        // 2. テキスト入力中に「Ctrl(Cmd) + Enter」で確定し、すぐ次のステップを追加
         if (e.key === 'Enter' && isInput && (e.ctrlKey || e.metaKey)) {
-          e.preventDefault();
-          e.target.blur(); // フォーカスを外して現在の内容を保存
-          window.createInlineStep();
+          e.preventDefault(); e.target.blur(); window.createInlineStep();
         }
       });
 
@@ -1602,11 +1609,25 @@
         });
       }
 
-      // 🚨 保管ロジック (チーム共有対応)
+      // 🚨 修正: フォルダの階層構造対応 (セレクトボックスの構築)
+      function buildFolderOptions(folders, parentId = null, depth = 0) {
+        let html = '';
+        const children = folders.filter(f => (f.parentId || null) === parentId);
+        children.forEach(child => {
+          const prefix = '　'.repeat(depth) + (depth > 0 ? '└ ' : '');
+          html += `<option value="${child.id}">${prefix}${child.name}</option>`;
+          html += buildFolderOptions(folders, child.id, depth + 1);
+        });
+        return html;
+      }
+
       onEvent('open-save-modal-btn', 'click', async () => {
         const currentWorkspaceTitle = getVal('workspace-manual-title').trim();
         setVal('modal-manual-title', currentWorkspaceTitle || (isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書"));
-        setHtml('modal-manual-folder', window.dbState.folders.filter(f => f.id !== 'f-all').map(f => `<option value="${f.id}">${f.name}</option>`).join(''));
+        
+        // 階層的なプルダウンを生成
+        setHtml('modal-manual-folder', buildFolderOptions(window.dbState.folders, null, 0));
+        
         setVal('modal-video-name', currentVideoFileInfo.name || "アタッチ動画なし");
         
         let urlValue = '';
@@ -1616,13 +1637,13 @@
         }
         setVal('modal-video-url', urlValue);
 
-        // 既存マニュアルの共有状態を反映
         if (activeEditingManualId) {
           const existing = window.dbState.manuals.find(m => m.id === activeEditingManualId) || teamManuals.find(m => m.id === activeEditingManualId);
-          if (existing && existing.isShared) { getEl('modal-is-shared-yes').checked = true; } 
-          else { getEl('modal-is-shared-no').checked = true; }
+          if (existing && existing.isShared === false) { getEl('modal-is-shared-no').checked = true; } 
+          else { getEl('modal-is-shared-yes').checked = true; }
         } else {
-          getEl('modal-is-shared-no').checked = true;
+          // 🚨 デフォルトをチーム共有にする
+          getEl('modal-is-shared-yes').checked = true;
         }
 
         removeClass('save-modal', 'hidden');
@@ -1664,13 +1685,11 @@
 
         if (activeVideoBlob) saveVideoBlob(newManual.id, activeVideoBlob).catch(err => console.error(err));
 
-        // ローカル（マイライブラリ）に保存
         const idx = window.dbState.manuals.findIndex(m => m.id === newManual.id);
         if (idx !== -1) window.dbState.manuals[idx] = newManual;
         else window.dbState.manuals.push(newManual);
         saveDatabase();
 
-        // 🚨 チーム共有設定の場合、Firestoreの共有領域に書き込む
         if (useFirebase && window.firebaseDb) {
            const sharedDocRef = window.firebaseDb.doc(dbFirestore, 'artifacts', appId, 'public', 'data', 'manureco_shared', newManual.id);
            if (isShared) {
@@ -1679,7 +1698,6 @@
               window.firebaseDb.deleteDoc(sharedDocRef).catch(e => console.error(e));
            }
         } else if (isShared) {
-           // Local fallback
            const tIdx = teamManuals.findIndex(m => m.id === newManual.id);
            if (tIdx !== -1) teamManuals[tIdx] = newManual;
            else teamManuals.push(newManual);
@@ -1698,9 +1716,24 @@
         window.switchView(isShared ? 'team' : 'library'); 
       });
 
+      // 🚨 修正: フォルダ追加時に「選択中のフォルダの下」に作る処理
       onEvent('add-folder-btn', 'click', () => {
-        const name = prompt('新規作成するマニュアルフォルダ名を入力してください：');
-        if (name) { window.dbState.folders.push({ id: 'f-' + Date.now(), name: '📁 ' + name }); saveDatabase(); renderLibrary(); }
+        let parentName = "一番上の階層";
+        let parentId = null;
+        if (currentSelectedFolderId !== 'f-all') {
+           const parentFolder = window.dbState.folders.find(f => f.id === currentSelectedFolderId);
+           if (parentFolder) {
+              parentName = `「${parentFolder.name}」の下`;
+              parentId = currentSelectedFolderId;
+           }
+        }
+        
+        const name = prompt(`新規作成するフォルダ名を入力してください：\n※${parentName}に作成されます`);
+        if (name) { 
+           window.dbState.folders.push({ id: 'f-' + Date.now(), name: '📁 ' + name, parentId: parentId }); 
+           saveDatabase(); 
+           renderLibrary(); 
+        }
       });
 
       onEvent('save-video-action-btn', 'click', async () => {
@@ -1825,7 +1858,6 @@
       function initFirebaseAsync() {
         if (typeof __firebase_config === 'undefined') { loadDatabaseFallback(); return; }
         
-        // Canvas Sandboxでのエラー防止のため、動的スクリプトタグ注入に切り替え
         const script1 = document.createElement('script');
         script1.type = 'module';
         script1.textContent = `
