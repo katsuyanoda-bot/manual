@@ -85,18 +85,21 @@
             <h1 class="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
               ManuReco Pro <span class="text-[10px] bg-brand-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider">Cloud Sync</span>
             </h1>
-            <p class="text-xs text-slate-500 font-medium">マニュアル自動生成・フォルダ保管・Notion連携システム</p>
+            <p class="text-xs text-slate-500 font-medium">マニュアル自動生成・チーム共有システム</p>
           </div>
         </div>
         
         <!-- ナビゲーションタブ＆パスコード設定 -->
         <div class="flex items-center gap-3">
           <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button id="nav-workspace-btn" onclick="window.toggleTabs(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5">
+            <button id="nav-workspace-btn" onclick="window.switchView('workspace')" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5">
               📝 ワークスペース
             </button>
-            <button id="nav-library-btn" onclick="window.toggleTabs(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
-              📁 保管ライブラリ (<span id="library-count-badge">0</span>)
+            <button id="nav-library-btn" onclick="window.switchView('library')" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
+              📁 マイライブラリ (<span id="library-count-badge">0</span>)
+            </button>
+            <button id="nav-team-btn" onclick="window.switchView('team')" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5 border-l border-slate-200 ml-1 pl-5">
+              🌐 チーム共有
             </button>
           </div>
           <button id="open-settings-btn" class="p-2 text-slate-400 hover:text-slate-700 bg-white border rounded-xl hover:shadow-sm" title="システム設定">
@@ -213,7 +216,7 @@
             </div>
           </div>
 
-          <!-- ワークスペース用操作ボタン (🚨修正: 状態に応じてボタンの見た目とテキストを動的に変更) -->
+          <!-- ワークスペース用操作ボタン -->
           <div class="grid grid-cols-4 gap-2">
             <button id="start-btn" class="p-2.5 bg-brand-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 col-span-2 shadow-sm transition-all active:scale-95">🔴 画面・音声 収録開始</button>
             <button id="stop-btn" disabled class="p-2.5 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed transition-all">⏹️ 停止</button>
@@ -263,8 +266,12 @@
             <input type="text" id="workspace-manual-title" class="w-full border border-slate-200 rounded-lg p-2.5 text-sm font-bold text-slate-800 focus:outline-none focus:border-brand-500 bg-white placeholder:text-slate-300 shadow-sm" placeholder="マニュアルのタイトルを入力 (例: 経費精算の手順)">
           </div>
 
-          <div class="flex-1 overflow-y-auto p-4 space-y-4 max-h-[340px]" id="timeline-container">
-            <div id="timeline-placeholder" class="text-center py-12 text-slate-400 text-xs">タイムラインは空です。動画を動かして手順やメモを記録してください。</div>
+          <div class="flex-1 overflow-y-auto p-4 space-y-4 max-h-[340px] bg-slate-50/50 relative" id="timeline-container">
+            <div id="timeline-placeholder" class="text-center py-10 text-slate-400 text-xs flex flex-col items-center justify-center h-full">
+              <div class="mb-3 text-3xl opacity-50">⚡️</div>
+              <p class="font-bold text-slate-600 mb-1.5">爆速インライン入力に対応！</p>
+              <p class="leading-relaxed">録画・再生中にキーボードの<br><kbd class="bg-white border border-slate-200 text-slate-700 px-2 py-1 rounded-md font-mono shadow-sm mx-1">Enter</kbd>キーを押すだけで、<br>その瞬間の時間にステップを追加できます。</p>
+            </div>
           </div>
 
           <div class="border-t border-slate-200 p-3 bg-slate-50">
@@ -291,7 +298,7 @@
       <div id="view-library" class="w-full flex flex-col md:flex-row gap-6 transition-all hidden animate-fade-in">
         
         <div class="md:w-3/12 flex flex-col gap-3">
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm" id="folder-sidebar">
             <div class="flex justify-between items-center mb-3">
               <h3 class="text-xs font-bold text-slate-900 tracking-wider uppercase">📂 フォルダ構造</h3>
               <button id="add-folder-btn" class="text-brand-600 hover:text-brand-800 text-xs font-bold flex items-center gap-0.5">+ 新規</button>
@@ -306,7 +313,7 @@
             <div class="border-b border-slate-100 pb-3 flex justify-between items-center mb-4">
               <div>
                 <h3 id="current-folder-title" class="text-sm font-bold text-slate-800">すべてのマニュアル</h3>
-                <p class="text-xs text-slate-400">保管中の時間連動型WEBマニュアル下書き一覧</p>
+                <p class="text-xs text-slate-400" id="current-folder-desc">保管中の時間連動型WEBマニュアル下書き一覧</p>
               </div>
               <button id="export-all-library-btn" class="text-xs bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl border font-medium">全データをバックアップ</button>
             </div>
@@ -315,8 +322,8 @@
               </div>
             
             <div id="library-empty-placeholder" class="text-center py-24 text-slate-400 text-xs hidden flex-col items-center justify-center">
-              <span>📦 このフォルダ、またはライブラリにはまだマニュアルがありません。</span>
-              <span class="text-slate-400 text-[10px] mt-1">「ワークスペース」タブでマニュアルを作成し「ライブラリに保管」してください。</span>
+              <span>📦 マニュアルがありません。</span>
+              <span class="text-slate-400 text-[10px] mt-1" id="empty-hint-text">「ワークスペース」タブでマニュアルを作成し「ライブラリに保管」してください。</span>
             </div>
           </div>
         </div>
@@ -338,13 +345,23 @@
           <label class="block font-bold text-slate-700 mb-1">マニュアル名 / タイトル</label>
           <input type="text" id="modal-manual-title" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 font-bold" placeholder="例: クラウド設定変更と再起動の手順">
         </div>
-        <div>
+        <div id="folder-selection-area">
           <label class="block font-bold text-slate-700 mb-1">格納するフォルダの選択</label>
           <select id="modal-manual-folder" class="w-full border rounded-xl p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
           </select>
         </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">動画アタッチ用ファイル名 (自動記録)</label>
+        
+        <div class="mt-2 pt-3 border-t border-slate-100">
+          <label class="block font-bold text-slate-700 mb-1">公開設定 (Firestore同期)</label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 font-bold"><input type="radio" id="modal-is-shared-no" name="modal-is-shared" value="false" checked class="accent-brand-600"> 🔒 個人用 (自分のみ)</label>
+            <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 font-bold"><input type="radio" id="modal-is-shared-yes" name="modal-is-shared" value="true" class="accent-brand-600"> 🌐 チームに共有</label>
+          </div>
+          <p class="text-[9px] text-slate-400 mt-1">※共有すると、同じアプリにログインしているメンバーの「チーム共有」タブに即座に表示されます。</p>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100">
+          <label class="block font-bold text-slate-700 mb-1">動画アタッチ用ファイル名</label>
           <input type="text" id="modal-video-name" readonly class="w-full border bg-slate-50 text-slate-400 rounded-xl p-2.5" placeholder="動画がありません">
         </div>
         <div>
@@ -356,7 +373,7 @@
           <p class="text-[10px] text-slate-400 mt-1">※同期フォルダ（Gドライブ等）のパス、または公開共有リンクを貼るとアタッチ不要で自動再生できます。</p>
         </div>
       </div>
-      <div class="flex justify-end gap-2 text-xs font-semibold mt-2">
+      <div class="flex justify-end gap-2 text-xs font-semibold mt-3">
         <button id="close-save-modal-btn" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl">キャンセル</button>
         <button id="execute-save-btn" class="bg-brand-600 text-white px-4 py-2 rounded-xl shadow-md">保管を確定する</button>
       </div>
@@ -419,7 +436,12 @@
     <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 flex flex-col gap-4">
       <h3 class="font-bold text-slate-900 text-sm">⚙️ システム設定</h3>
       <div class="space-y-3 text-xs">
-        <div class="pt-2">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">🔒 社内限定アクセス (許可ドメイン)</label>
+          <input type="text" id="settings-domain-input" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono tracking-widest text-center" placeholder="@sansan.com">
+          <p class="text-[10px] text-slate-400 mt-1">※指定したドメイン（例: @sansan.com）のGoogleアカウント以外からのログインを強制ブロックします。空欄で制限なし。</p>
+        </div>
+        <div class="mt-4 pt-4 border-t border-slate-100">
           <label class="block font-bold text-slate-700 mb-1">録画動画のデフォルト保存先 (Googleドライブ等)</label>
           <div class="flex items-center gap-2">
             <input type="text" id="settings-dir-name" readonly class="flex-1 border bg-slate-50 text-slate-500 rounded-xl p-2 focus:outline-none text-[10px]" placeholder="未設定 (毎回ダイアログ表示)">
@@ -467,11 +489,7 @@
   </div>
 
   <!-- JavaScript -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+  <script>
     // --- 🛡️ 安全なクラス操作・DOM操作ヘルパー ---
     function getEl(id) { return document.getElementById(id); }
 
@@ -568,18 +586,34 @@
     }
     window.getFormattedDate = getFormattedDate;
 
-    function toggleTabs(showWorkspace) {
-      if (showWorkspace) {
+    // 🚨 修正: タブ切り替え（3タブ対応）
+    let currentView = 'workspace'; // 'workspace', 'library', 'team'
+    function switchView(view) {
+      currentView = view;
+      const wsBtn = getEl('nav-workspace-btn');
+      const libBtn = getEl('nav-library-btn');
+      const teamBtn = getEl('nav-team-btn');
+
+      [wsBtn, libBtn, teamBtn].forEach(btn => {
+         if(btn) btn.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5";
+      });
+
+      if (view === 'workspace') {
         addClass('view-library', 'hidden'); removeClass('view-workspace', 'hidden');
-        setProp('nav-workspace-btn', 'className', "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5");
-        setProp('nav-library-btn', 'className', "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5");
+        if(wsBtn) wsBtn.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5";
       } else {
         addClass('view-workspace', 'hidden'); removeClass('view-library', 'hidden');
-        setProp('nav-library-btn', 'className', "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5");
-        setProp('nav-workspace-btn', 'className', "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5");
+        if (view === 'library') {
+          if(libBtn) libBtn.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5";
+          if (typeof window.renderLibrary === 'function') window.renderLibrary('library');
+        } else if (view === 'team') {
+          if(teamBtn) teamBtn.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5 border-l border-slate-200 ml-1 pl-5";
+          if (typeof window.renderLibrary === 'function') window.renderLibrary('team');
+        }
       }
     }
-    window.toggleTabs = toggleTabs;
+    window.switchView = switchView;
+    window.toggleTabs = (showWorkspace) => { switchView(showWorkspace ? 'workspace' : 'library'); }; // 下位互換
 
     function showToast(msg) {
       const t = document.createElement('div');
@@ -610,6 +644,30 @@
       });
     }
 
+    function setupVideoPlayer(blob, fileName) {
+      isImportMode = true;
+      activeVideoBlob = blob;
+      const objectUrl = URL.createObjectURL(blob);
+      currentVideoFileInfo.name = fileName;
+      currentVideoFileInfo.url = objectUrl;
+
+      const vp = getEl('video-preview');
+      if (vp) {
+        vp.srcObject = null;
+        vp.src = objectUrl;
+        vp.muted = false;
+        vp.controls = true;
+        vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); };
+      }
+      removeClass('video-preview', 'hidden');
+      addClass('video-placeholder', 'hidden');
+      addClass('video-attach-prompt', 'hidden');
+      
+      setText('timer-label', "PlaybackTime");
+      if (typeof window.updateUIState === 'function') window.updateUIState(false);
+    }
+    window.setupVideoPlayer = setupVideoPlayer;
+
     function saveVideoBlob(id, blob) {
       return new Promise((resolve, reject) => {
         if (!indexedDbInstance) { reject("IndexedDBが初期化されていません"); return; }
@@ -620,6 +678,7 @@
         request.onerror = (e) => reject(e.target.error);
       });
     }
+    window.saveVideoBlob = saveVideoBlob;
 
     function getVideoBlob(id) {
       return new Promise((resolve, reject) => {
@@ -631,6 +690,7 @@
         request.onerror = (e) => reject(e.target.error);
       });
     }
+    window.getVideoBlob = getVideoBlob;
 
     function deleteVideoBlob(id) {
       return new Promise((resolve, reject) => {
@@ -642,7 +702,9 @@
         request.onerror = (e) => reject(e.target.error);
       });
     }
+    window.deleteVideoBlob = deleteVideoBlob;
 
+    // デフォルト保存先ディレクトリハンドルの保存と取得
     function saveDirHandle(handle) {
       return new Promise((resolve, reject) => {
         if (!indexedDbInstance) { reject("IndexedDB Error"); return; }
@@ -667,37 +729,63 @@
     }
     window.getDirHandle = getDirHandle;
 
-    async function verifyPermission(fileHandle, readWrite) {
-      const opts = {};
-      if (readWrite) opts.mode = 'readwrite';
-      if ((await fileHandle.queryPermission(opts)) === 'granted') return true;
-      if ((await fileHandle.requestPermission(opts)) === 'granted') return true;
-      return false;
+    // ディレクトリハンドルの権限検証
+    function verifyPermission(fileHandle, readWrite) {
+      return new Promise(async (resolve) => {
+         const opts = {};
+         if (readWrite) opts.mode = 'readwrite';
+         if ((await fileHandle.queryPermission(opts)) === 'granted') { resolve(true); return; }
+         if ((await fileHandle.requestPermission(opts)) === 'granted') { resolve(true); return; }
+         resolve(false);
+      });
     }
     window.verifyPermission = verifyPermission;
 
+    // ビデオ要素の安全制御
     function playVideo() {
       const vp = getEl('video-preview');
       if (vp && (vp.src || vp.srcObject)) vp.play().catch(e => console.warn("Auto-play blocked or failed:", e));
     }
+    window.playVideo = playVideo;
     
     function setVideoCurrentTime(time) {
       const vp = getEl('video-preview');
       if (vp && (vp.src || vp.srcObject)) vp.currentTime = time;
     }
+    window.setVideoCurrentTime = setVideoCurrentTime;
     
     function getVideoCurrentTime() {
       const vp = getEl('video-preview'); return vp ? vp.currentTime : 0;
     }
+    window.getVideoCurrentTime = getVideoCurrentTime;
     
     function hasVideoSource() {
       const vp = getEl('video-preview'); return vp ? !!(vp.src || vp.srcObject) : false;
     }
+    window.hasVideoSource = hasVideoSource;
+
+    // --- 🔐 整理されたシステム設定変数 ---
+    window.systemSettings = {
+      allowedDomain: ''
+    };
+    function loadSystemSettings() {
+      const savedSettings = localStorage.getItem('manureco_settings');
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings);
+          if (parsed.allowedDomain !== undefined) {
+             window.systemSettings.allowedDomain = parsed.allowedDomain;
+          }
+        } catch(e) {}
+      }
+    }
+    loadSystemSettings();
 
     // --- 🔐 セキュリティ・Googleログイン・Firebase連携管理 ---
     let useFirebase = false;
     let auth, dbFirestore, appId;
     let currentUser = null;
+    let teamManuals = []; // 🚨 チーム共有データ保持用
 
     window.dbState = {
       folders: [
@@ -718,9 +806,10 @@
       if (manualId) {
         setTimeout(() => {
           if (typeof window.loadManualToWorkspace === 'function') window.loadManualToWorkspace(manualId);
-        }, 500);
+        }, 800); // 共有データ読み込み待ちのため少し遅延
       }
     }
+    window.bypassLogin = bypassLogin;
 
     function handleGoogleLogin() {
       showToast("Googleアカウントで認証中...");
@@ -736,7 +825,7 @@
         setTimeout(() => {
           sessionStorage.setItem('manureco_logged_in', 'true');
           bypassLogin();
-          loadDatabaseFallback();
+          if (typeof window.loadDatabaseFallback === 'function') window.loadDatabaseFallback();
           showToast("認証成功 (ローカルモードで稼働中)");
         }, 800);
       }
@@ -746,20 +835,33 @@
     // --- 📂 データベース(Firestore / LocalStorage)状態管理 ---
     function loadDatabase() {
       if (useFirebase && currentUser && window.firebaseDb) {
+        // 1. 個人のライブラリデータの監視
         const userDocRef = window.firebaseDb.doc(dbFirestore, 'artifacts', appId, 'users', currentUser.uid, 'manureco', 'state');
         window.firebaseDb.onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             window.dbState = docSnap.data();
           } else {
-            saveDatabase(); 
+            if (typeof window.saveDatabase === 'function') window.saveDatabase(); 
           }
           setText('library-count-badge', window.dbState.manuals.length);
-          window.renderLibrary();
+          if(currentView === 'library' && typeof window.renderLibrary === 'function') window.renderLibrary('library');
         }, (error) => console.error(error));
+
+        // 2. 🚨 チーム共有データの監視
+        const sharedColRef = window.firebaseDb.collection(dbFirestore, 'artifacts', appId, 'public', 'data', 'manureco_shared');
+        window.firebaseDb.onSnapshot(sharedColRef, (snap) => {
+          teamManuals = [];
+          snap.forEach(doc => {
+            teamManuals.push(doc.data());
+          });
+          if (currentView === 'team' && typeof window.renderLibrary === 'function') window.renderLibrary('team');
+        }, err => console.error(err));
+
       } else {
-        loadDatabaseFallback();
+        if (typeof window.loadDatabaseFallback === 'function') window.loadDatabaseFallback();
       }
     }
+    window.loadDatabase = loadDatabase;
 
     function saveDatabase() {
       if (useFirebase && currentUser && window.firebaseDb) {
@@ -768,7 +870,7 @@
           setText('library-count-badge', window.dbState.manuals.length);
         }).catch(err => console.error(err));
       } else {
-        saveDatabaseFallback();
+        if (typeof window.saveDatabaseFallback === 'function') window.saveDatabaseFallback();
       }
     }
     window.saveDatabase = saveDatabase;
@@ -786,6 +888,7 @@
             createdAt: '2026-05-21 08:00',
             videoName: 'dashboard_capture.mp4',
             videoUrl: '',
+            isShared: false,
             timeline: [
               { id: '1', time: 0, title: 'マニュアル収録の開始', text: '操作の収録を開始しました。', type: 'system' },
               { id: '2', time: 3, title: 'ユーザー管理画面を開く', text: 'サイドバーからユーザー管理画面を展開して、アクティブノードを確認します。', type: 'step' }
@@ -794,14 +897,24 @@
         ];
         saveDatabaseFallback();
       }
+      
+      // LocalFallback用 チーム共有のモック
+      const savedTeamData = localStorage.getItem('manureco_pro_team');
+      if (savedTeamData) {
+        try { teamManuals = JSON.parse(savedTeamData); } catch(e) {}
+      }
+
       setText('library-count-badge', window.dbState.manuals.length);
-      window.renderLibrary();
+      if (typeof window.renderLibrary === 'function') window.renderLibrary(currentView);
     }
+    window.loadDatabaseFallback = loadDatabaseFallback;
 
     function saveDatabaseFallback() {
       localStorage.setItem('manureco_pro_db2', JSON.stringify(window.dbState));
+      localStorage.setItem('manureco_pro_team', JSON.stringify(teamManuals));
       setText('library-count-badge', window.dbState.manuals.length);
     }
+    window.saveDatabaseFallback = saveDatabaseFallback;
 
     // --- 各種状態フラグ ---
     let mediaRecorder = null;
@@ -934,7 +1047,28 @@
     }
     window.saveCapturedVideoDirectly = saveCapturedVideoDirectly;
 
-    // --- 🚨 修正: タイムライン制御コア (時間を直接編集できるように改良) ---
+    // --- ⚡️ インラインステップ生成コア ---
+    function createInlineStep() {
+      if (!isRecording && !hasVideoSource() && !isDemoMode) {
+        showToast("動画を設定するか、録画を開始してから追加してください。");
+        return;
+      }
+      const time = getCurrentTimestamp();
+      const id = Date.now() + Math.random().toString(36).substr(2,5);
+      
+      currentTimelineData.push({ id, time, title: '', text: '', type: activeTag });
+      currentTimelineData.sort((a,b) => a.time - b.time);
+      renderTimeline();
+      
+      // レンダリング後、追加されたタイトルの入力欄に即フォーカス
+      setTimeout(() => {
+        const newTitleInput = document.querySelector(`.edit-title-node[data-id="${id}"]`);
+        if (newTitleInput) newTitleInput.focus();
+      }, 50);
+    }
+    window.createInlineStep = createInlineStep;
+
+    // --- タイムライン制御コア ---
     function addTimelineItem(time, title, text, type) {
       currentTimelineData.push({ id: Date.now() + Math.random().toString(36).substr(2,5), time, title, text, type });
       currentTimelineData.sort((a,b) => a.time - b.time);
@@ -942,13 +1076,15 @@
     }
     
     function renderTimeline() {
+      const tc = getEl('timeline-container');
       if (currentTimelineData.length === 0) {
-        removeClass('timeline-placeholder', 'hidden'); return;
+        removeClass('timeline-placeholder', 'hidden'); 
+        if (tc) tc.querySelectorAll('.timeline-item-row, .inline-add-btn').forEach(el => el.remove());
+        return;
       }
       addClass('timeline-placeholder', 'hidden');
       
-      const tc = getEl('timeline-container');
-      if (tc) tc.querySelectorAll('.timeline-item-row').forEach(el => el.remove());
+      if (tc) tc.querySelectorAll('.timeline-item-row, .inline-add-btn').forEach(el => el.remove());
 
       let stepCount = 1;
 
@@ -963,7 +1099,6 @@
         else if (item.type === 'step') { iconHtml = `<span class="text-brand-600">⚙️ ステップ ${stepCount}</span>`; stepCount++; }
         else iconHtml = '📝 メモ';
 
-        // 🚨 修正: 時間（バッジ）部分を「ジャンプボタン」と「直接編集可能なインプット」に分割
         row.innerHTML = `
           <div class="absolute -left-[5.5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 group-hover:bg-brand-400 transition-colors"></div>
           <div class="flex-1 flex flex-col gap-1.5">
@@ -974,8 +1109,9 @@
               </div>
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">${iconHtml}</span>
             </div>
-            <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm group-hover:shadow-md transition-shadow">
-              <input type="text" class="w-full font-bold text-sm text-slate-800 focus:outline-none focus:border-b-2 border-brand-500 bg-transparent edit-title-node placeholder:text-slate-300 placeholder:font-normal" data-id="${item.id}" value="${item.title || ''}" placeholder="見出しを追加">
+            <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm group-hover:shadow-md transition-shadow relative">
+              <button onclick="window.deleteTimelineItem('${item.id}')" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" title="削除">&times;</button>
+              <input type="text" class="w-full pr-6 font-bold text-sm text-slate-800 focus:outline-none focus:border-b-2 border-brand-500 bg-transparent edit-title-node placeholder:text-slate-300 placeholder:font-normal" data-id="${item.id}" value="${item.title || ''}" placeholder="見出しを追加">
               <textarea class="w-full mt-1.5 text-xs text-slate-600 focus:outline-none focus:border-b-2 border-brand-500 resize-none bg-transparent edit-txt-node placeholder:text-slate-300" data-id="${item.id}" rows="2" placeholder="詳細な手順や補足を入力...">${item.text}</textarea>
             </div>
           </div>
@@ -984,6 +1120,15 @@
       });
 
       if (tc) {
+        // インライン追加ボタンの描画
+        if (isRecording || hasVideoSource() || isDemoMode) {
+          const addBtnRow = document.createElement('div');
+          addBtnRow.className = 'inline-add-btn mt-2 p-3 border-2 border-dashed border-slate-200 rounded-xl text-center text-slate-400 hover:text-brand-600 hover:border-brand-400 hover:bg-brand-50 cursor-pointer transition-all text-xs font-bold flex flex-col items-center justify-center gap-1';
+          addBtnRow.innerHTML = `<span class="text-lg leading-none">+</span><span>現在の時間で新しいステップを追加</span><span class="text-[9px] font-normal text-slate-400">キーボードの <kbd class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded shadow-sm">Enter</kbd> でも追加可能</span>`;
+          addBtnRow.onclick = window.createInlineStep;
+          tc.appendChild(addBtnRow);
+        }
+
         // ジャンプ
         tc.querySelectorAll('.stamp-jump').forEach(btn => {
           btn.addEventListener('click', () => {
@@ -993,7 +1138,6 @@
           });
         });
         
-        // 🚨 修正: 時間の直接編集ハンドラ
         tc.querySelectorAll('.edit-time-node').forEach(inp => {
           const handleTimeEdit = () => {
             const id = inp.getAttribute('data-id');
@@ -1014,22 +1158,29 @@
               if (newTime !== item.time) {
                 item.time = newTime;
                 currentTimelineData.sort((a,b) => a.time - b.time);
-                renderTimeline(); // 再描画して正しい位置に並べ替え
+                renderTimeline(); 
               } else {
-                inp.value = formatTime(item.time); // 元に戻す
+                inp.value = formatTime(item.time); 
               }
             }
           };
           inp.addEventListener('blur', handleTimeEdit);
-          inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTimeEdit(); });
+          inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleTimeEdit(); }});
         });
 
-        // タイトルとテキストの編集
+        // 🚨 修正: タイトル入力中の Enter で詳細へ移動
         tc.querySelectorAll('.edit-title-node').forEach(inp => {
           inp.addEventListener('blur', () => {
             const id = inp.getAttribute('data-id');
             const item = currentTimelineData.find(i => i.id === id);
             if (item) item.title = inp.value.trim();
+          });
+          inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+               e.preventDefault();
+               const textarea = inp.nextElementSibling;
+               if (textarea && textarea.classList.contains('edit-txt-node')) textarea.focus();
+            }
           });
         });
 
@@ -1045,6 +1196,12 @@
     }
     window.renderTimeline = renderTimeline;
 
+    // 🚨 追加: タイムライン要素の削除機能
+    window.deleteTimelineItem = function(id) {
+       currentTimelineData = currentTimelineData.filter(i => i.id !== id);
+       renderTimeline();
+    };
+
     function sendMemo() {
       const titleVal = getVal('memo-title-input').trim();
       const textVal = getVal('memo-input').trim(); 
@@ -1056,29 +1213,48 @@
     }
     window.sendMemo = sendMemo;
 
-    // 📁 ライブラリ描画コア
-    function renderLibrary() {
+    // 📁 ライブラリ描画コア (🚨 修正: チーム共有対応)
+    function renderLibrary(mode = currentView) {
+      const isTeam = mode === 'team';
+      const sourceManuals = isTeam ? teamManuals : window.dbState.manuals;
+
       const flc = getEl('folder-list-container');
-      if (flc) {
-        flc.innerHTML = window.dbState.folders.map(f => {
-          const isSelected = f.id === currentSelectedFolderId;
-          const count = f.id === 'f-all' ? window.dbState.manuals.length : window.dbState.manuals.filter(m => m.folderId === f.id).length;
-          return `
-            <div class="flex justify-between items-center group p-2 rounded-lg cursor-pointer font-semibold transition-all ${isSelected ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" onclick="window.selectFolder('${f.id}')">
-              <span class="truncate">${f.name}</span>
-              <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full">${count}</span>
-            </div>
-          `;
-        }).join('');
+      const folderSidebar = getEl('folder-sidebar');
+      
+      if (isTeam) {
+         addClass('folder-sidebar', 'hidden'); // チーム画面ではフォルダツリーを隠す
+         setText('current-folder-title', '🌐 チーム共有マニュアル');
+         setText('current-folder-desc', 'チームメンバー全体に公開されているマニュアル一覧');
+      } else {
+         removeClass('folder-sidebar', 'hidden');
+         setText('current-folder-desc', '保管中の時間連動型WEBマニュアル下書き一覧');
+         if (flc) {
+          flc.innerHTML = window.dbState.folders.map(f => {
+            const isSelected = f.id === currentSelectedFolderId;
+            const count = f.id === 'f-all' ? window.dbState.manuals.length : window.dbState.manuals.filter(m => m.folderId === f.id).length;
+            return `
+              <div class="flex justify-between items-center group p-2 rounded-lg cursor-pointer font-semibold transition-all ${isSelected ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" onclick="window.selectFolder('${f.id}')">
+                <span class="truncate">${f.name}</span>
+                <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full">${count}</span>
+              </div>
+            `;
+          }).join('');
+        }
+        const fObj = window.dbState.folders.find(f => f.id === currentSelectedFolderId);
+        setText('current-folder-title', fObj ? fObj.name : "一覧");
       }
 
-      const filteredManuals = currentSelectedFolderId === 'f-all' ? window.dbState.manuals : window.dbState.manuals.filter(m => m.folderId === currentSelectedFolderId);
-      const fObj = window.dbState.folders.find(f => f.id === currentSelectedFolderId);
-      setText('current-folder-title', fObj ? fObj.name : "一覧");
+      let filteredManuals = sourceManuals;
+      if (!isTeam && currentSelectedFolderId !== 'f-all') {
+        filteredManuals = sourceManuals.filter(m => m.folderId === currentSelectedFolderId);
+      }
 
       if (filteredManuals.length === 0) {
-        addClass('manuals-grid-container', 'hidden'); removeClass('library-empty-placeholder', 'hidden'); return;
+        addClass('manuals-grid-container', 'hidden'); removeClass('library-empty-placeholder', 'hidden');
+        setText('empty-hint-text', isTeam ? 'まだ誰もチームにマニュアルを共有していません。' : '「ワークスペース」タブでマニュアルを作成し「ライブラリに保管」してください。');
+        return;
       }
+      
       addClass('library-empty-placeholder', 'hidden'); removeClass('manuals-grid-container', 'hidden');
 
       const mgc = getEl('manuals-grid-container');
@@ -1086,12 +1262,16 @@
         mgc.innerHTML = filteredManuals.map(m => {
           let videoBadgeStr = m.videoUrl ? '🌐 外部URL' : m.videoName ? '📼 要アタッチ/復元可' : '⚠️ 動画なし';
           let badgeColor = m.videoUrl ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : m.videoName ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-slate-100 text-slate-500 border-slate-200';
+          
+          let actionLabel = isTeam ? '📖 開いて閲覧' : '✏️ 復元して再編集';
+          let deleteBtnHtml = (!isTeam || (currentUser && m.authorUid === currentUser.uid)) ? `<button onclick="window.deleteManual('${m.id}', event)" class="text-slate-400 hover:text-red-500 text-xs">&times; 削除</button>` : '';
+
           return `
             <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[144px]">
               <div>
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-[9px] text-slate-400 font-mono">📅 ${m.createdAt}</span>
-                  <button onclick="window.deleteManual('${m.id}', event)" class="text-slate-400 hover:text-red-500 text-xs">&times; 削除</button>
+                  ${deleteBtnHtml}
                 </div>
                 <h4 class="text-xs font-bold text-slate-800 line-clamp-2 cursor-pointer hover:text-brand-600 mb-1" onclick="window.openManualPreview('${m.id}')">📄 ${m.title}</h4>
                 <div class="flex flex-wrap gap-1.5 items-center">
@@ -1102,7 +1282,7 @@
               
               <div class="pt-3 border-t border-slate-100 flex gap-1.5 mt-2">
                 <button onclick="window.loadManualToWorkspace('${m.id}')" class="flex-1 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold text-[10px] py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1">
-                  ✏️ 復元して再編集
+                  ${actionLabel}
                 </button>
                 <button onclick="window.openNotionShare('${m.id}', event)" class="flex-1 bg-slate-900 text-white font-bold text-[10px] py-1.5 px-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-1">
                   🚀 Notion連携
@@ -1121,9 +1301,19 @@
 
     window.deleteManual = function(id, e) {
       if (e) e.stopPropagation();
-      if(confirm('このマニュアル保管データをライブラリから完全に削除しますか？')) {
+      if(confirm('このマニュアル保管データを完全に削除しますか？')) {
+        // チームと個人の両方から削除を試みる
         window.dbState.manuals = window.dbState.manuals.filter(m => m.id !== id);
         saveDatabase();
+        
+        if (useFirebase && window.firebaseDb) {
+           const sharedDocRef = window.firebaseDb.doc(dbFirestore, 'artifacts', appId, 'public', 'data', 'manureco_shared', id);
+           window.firebaseDb.deleteDoc(sharedDocRef).catch(e => console.error(e));
+        } else {
+           teamManuals = teamManuals.filter(m => m.id !== id);
+           saveDatabaseFallback();
+        }
+
         deleteVideoBlob(id).catch(err => console.error(err));
         renderLibrary();
       }
@@ -1131,7 +1321,7 @@
 
     // 🔄 ワークスペースにマニュアルをロードする
     window.loadManualToWorkspace = async function(id) {
-      const m = window.dbState.manuals.find(manual => manual.id === id);
+      const m = window.dbState.manuals.find(manual => manual.id === id) || teamManuals.find(manual => manual.id === id);
       if (!m) return;
 
       activeEditingManualId = m.id;
@@ -1206,7 +1396,7 @@
 
     window.openNotionShare = function(id, e) {
       if (e) e.stopPropagation();
-      const m = window.dbState.manuals.find(manual => manual.id === id);
+      const m = window.dbState.manuals.find(manual => manual.id === id) || teamManuals.find(manual => manual.id === id);
       if (!m) return;
 
       const baseAppUrl = window.location.origin + window.location.pathname;
@@ -1234,7 +1424,7 @@
 
     // 詳細プレビュー
     window.openManualPreview = function(id) {
-      const m = window.dbState.manuals.find(manual => manual.id === id);
+      const m = window.dbState.manuals.find(manual => manual.id === id) || teamManuals.find(manual => manual.id === id);
       if (!m) return;
       setText('preview-modal-title', m.title);
       const pmt = getEl('preview-modal-timeline');
@@ -1253,7 +1443,6 @@
       removeClass('preview-modal', 'hidden');
     };
 
-    // 🚨 修正: 録画状態に応じたボタンの動的なテキスト変更
     function updateUIState(rec) {
       const sBtn = getEl('start-btn');
       if (sBtn) { 
@@ -1309,6 +1498,27 @@
     // 全イベントリスナーの登録と初期化 (DOM Load後)
     // ==========================================
     window.onload = () => {
+      // 🚨 グローバルショートカットの登録 (爆速インライン入力)
+      document.addEventListener('keydown', (e) => {
+        if (!isRecording && !hasVideoSource() && !isDemoMode) return;
+
+        const targetTag = e.target.tagName.toLowerCase();
+        const isInput = targetTag === 'input' || targetTag === 'textarea';
+
+        // 1. テキスト入力中以外に「Enter」で新しいステップを追加
+        if (e.key === 'Enter' && !isInput && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          window.createInlineStep();
+        }
+
+        // 2. テキスト入力中に「Ctrl(Cmd) + Enter」で確定し、すぐ次のステップを追加
+        if (e.key === 'Enter' && isInput && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          e.target.blur(); // フォーカスを外して現在の内容を保存
+          window.createInlineStep();
+        }
+      });
+
       onEvent('mic-test-btn', 'click', window.toggleMicTest);
 
       onEvent('close-share-modal-btn', 'click', () => addClass('share-modal', 'hidden'));
@@ -1325,6 +1535,7 @@
       });
 
       onEvent('open-settings-btn', 'click', () => {
+        setVal('settings-domain-input', window.systemSettings.allowedDomain || '');
         if (typeof getDirHandle === 'function') {
           getDirHandle().then(data => {
             if (data && data.name) {
@@ -1340,6 +1551,8 @@
       onEvent('close-settings-btn', 'click', () => addClass('settings-modal', 'hidden'));
       
       onEvent('save-settings-btn', 'click', () => {
+        window.systemSettings.allowedDomain = getVal('settings-domain-input').trim();
+        localStorage.setItem('manureco_settings', JSON.stringify(window.systemSettings));
         addClass('settings-modal', 'hidden');
         showToast("🔐 システム設定を保存しました。");
       });
@@ -1389,6 +1602,7 @@
         });
       }
 
+      // 🚨 保管ロジック (チーム共有対応)
       onEvent('open-save-modal-btn', 'click', async () => {
         const currentWorkspaceTitle = getVal('workspace-manual-title').trim();
         setVal('modal-manual-title', currentWorkspaceTitle || (isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書"));
@@ -1401,8 +1615,19 @@
           try { const dirData = await getDirHandle(); if (dirData && dirData.name && currentVideoFileInfo.name) urlValue = dirData.name + '/' + currentVideoFileInfo.name; } catch(e){}
         }
         setVal('modal-video-url', urlValue);
+
+        // 既存マニュアルの共有状態を反映
+        if (activeEditingManualId) {
+          const existing = window.dbState.manuals.find(m => m.id === activeEditingManualId) || teamManuals.find(m => m.id === activeEditingManualId);
+          if (existing && existing.isShared) { getEl('modal-is-shared-yes').checked = true; } 
+          else { getEl('modal-is-shared-no').checked = true; }
+        } else {
+          getEl('modal-is-shared-no').checked = true;
+        }
+
         removeClass('save-modal', 'hidden');
       });
+      
       onEvent('close-save-modal-btn', 'click', () => addClass('save-modal', 'hidden'));
 
       onEvent('auto-fill-drive-btn', 'click', async () => {
@@ -1421,27 +1646,56 @@
         const folderId = getVal('modal-manual-folder');
         const vName = getVal('modal-video-name');
         const vUrl = getVal('modal-video-url').trim();
+        const isShared = getEl('modal-is-shared-yes').checked;
         
         if (!title) { alert('マニュアルのタイトルを入力してください。'); return; }
 
         const newManual = {
           id: activeEditingManualId || 'm-' + Date.now(),
-          title: title, folderId: folderId, createdAt: getFormattedDate(true), videoName: vName !== "アタッチ動画なし" ? vName : "", videoUrl: vUrl, timeline: [...currentTimelineData]
+          title: title, 
+          folderId: folderId, 
+          createdAt: getFormattedDate(true), 
+          videoName: vName !== "アタッチ動画なし" ? vName : "", 
+          videoUrl: vUrl, 
+          isShared: isShared,
+          authorUid: currentUser ? currentUser.uid : 'local',
+          timeline: [...currentTimelineData]
         };
 
         if (activeVideoBlob) saveVideoBlob(newManual.id, activeVideoBlob).catch(err => console.error(err));
 
-        if (activeEditingManualId !== null) {
-          const idx = window.dbState.manuals.findIndex(m => m.id === activeEditingManualId);
-          if (idx !== -1) window.dbState.manuals[idx] = newManual;
-          showToast("✔️ 保管中のマニュアルを上書き更新しました！");
+        // ローカル（マイライブラリ）に保存
+        const idx = window.dbState.manuals.findIndex(m => m.id === newManual.id);
+        if (idx !== -1) window.dbState.manuals[idx] = newManual;
+        else window.dbState.manuals.push(newManual);
+        saveDatabase();
+
+        // 🚨 チーム共有設定の場合、Firestoreの共有領域に書き込む
+        if (useFirebase && window.firebaseDb) {
+           const sharedDocRef = window.firebaseDb.doc(dbFirestore, 'artifacts', appId, 'public', 'data', 'manureco_shared', newManual.id);
+           if (isShared) {
+              window.firebaseDb.setDoc(sharedDocRef, newManual).catch(e => console.error(e));
+           } else {
+              window.firebaseDb.deleteDoc(sharedDocRef).catch(e => console.error(e));
+           }
+        } else if (isShared) {
+           // Local fallback
+           const tIdx = teamManuals.findIndex(m => m.id === newManual.id);
+           if (tIdx !== -1) teamManuals[tIdx] = newManual;
+           else teamManuals.push(newManual);
+           saveDatabaseFallback();
         } else {
-          window.dbState.manuals.push(newManual);
-          showToast("✔️ ライブラリに安全にマニュアルを新規保管しました！");
+           teamManuals = teamManuals.filter(m => m.id !== newManual.id);
+           saveDatabaseFallback();
         }
 
-        saveDatabase(); addClass('save-modal', 'hidden'); activeEditingManualId = null; activeVideoBlob = null; 
-        toggleTabs(false); renderLibrary();
+        showToast(isShared ? "✔️ マニュアルをチームに公開・保管しました！" : "✔️ マニュアルを個人用として保管しました！");
+
+        addClass('save-modal', 'hidden'); 
+        activeEditingManualId = null; 
+        activeVideoBlob = null; 
+        
+        window.switchView(isShared ? 'team' : 'library'); 
       });
 
       onEvent('add-folder-btn', 'click', () => {
@@ -1466,7 +1720,7 @@
           addClass('demo-simulator', 'hidden'); addClass('video-attach-prompt', 'hidden'); addClass('save-video-action-area', 'hidden');
           
           if (typeof testMicStream !== 'undefined' && testMicStream) {
-             window.toggleMicTest(); // マイクテスト中なら自動で閉じる
+             window.toggleMicTest(); 
           }
           
           screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
@@ -1482,7 +1736,6 @@
           if (vp) { vp.srcObject = screenStream; vp.muted = true; vp.play(); }
           removeClass('video-preview', 'hidden'); addClass('video-placeholder', 'hidden');
           
-          // AudioContextを使って画面の音声とマイクの音声を合成(ミックス)する
           const tracks = [...screenStream.getVideoTracks()];
           let audioContextForRecord = null;
           let destNode = null;
@@ -1538,6 +1791,7 @@
             } catch(e) { console.warn("Auto save failed", e); }
             
             removeClass('save-library-banner', 'hidden');
+
             if (!isAutoSaved) {
               removeClass('save-video-action-area', 'hidden');
               showToast("収録完了。上の「保存先を指定する」ボタンを押して動画をPCに保存してください。");
@@ -1568,37 +1822,55 @@
         if (mixedStream) mixedStream.getTracks().forEach(t => t.stop());
       });
 
-      async function initFirebaseAsync() {
+      function initFirebaseAsync() {
         if (typeof __firebase_config === 'undefined') { loadDatabaseFallback(); return; }
-        try {
-          const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-          const { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-          const { getFirestore, doc, setDoc, collection, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+        
+        // Canvas Sandboxでのエラー防止のため、動的スクリプトタグ注入に切り替え
+        const script1 = document.createElement('script');
+        script1.type = 'module';
+        script1.textContent = `
+          import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+          import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+          import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
           
-          const config = JSON.parse(__firebase_config);
-          firebaseApp = initializeApp(config);
-          auth = getAuth(firebaseApp);
-          dbFirestore = getFirestore(firebaseApp);
-          appId = typeof __app_id !== 'undefined' ? __app_id : 'manureco-pro-app';
-          useFirebase = true;
+          try {
+            const config = JSON.parse(__firebase_config);
+            const firebaseApp = initializeApp(config);
+            auth = getAuth(firebaseApp);
+            dbFirestore = getFirestore(firebaseApp);
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'manureco-pro-app';
+            useFirebase = true;
 
-          window.firebaseAuth = { signInWithCustomToken, signInAnonymously, GoogleAuthProvider, signInWithPopup };
-          window.firebaseDb = { doc, setDoc, collection, onSnapshot };
+            window.firebaseAuth = { signInWithCustomToken, signInAnonymously, GoogleAuthProvider, signInWithPopup };
+            window.firebaseDb = { doc, setDoc, deleteDoc, collection, onSnapshot };
 
-          onAuthStateChanged(auth, (user) => {
-            if (user && !user.isAnonymous) {
-              currentUser = user;
-              bypassLogin();
-              loadDatabase();
+            onAuthStateChanged(auth, (user) => {
+              if (user && !user.isAnonymous) {
+                const allowedDomain = window.systemSettings.allowedDomain;
+                if (allowedDomain && user.email && !user.email.endsWith(allowedDomain)) {
+                   auth.signOut().then(() => {
+                      alert('【アクセスブロック】\\nこのマニュアルシステムは「' + allowedDomain + '」のGoogleアカウントでのみログインが許可されています。\\n現在のアカウント: ' + user.email);
+                      currentUser = null;
+                   });
+                } else {
+                  currentUser = user;
+                  window.bypassLogin();
+                  window.loadDatabase();
+                }
+              }
+            });
+            
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+               signInWithCustomToken(auth, __initial_auth_token).catch(e => console.error(e));
+            } else {
+               signInAnonymously(auth).catch(e => console.error(e));
             }
-          });
-          
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-             await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-             await signInAnonymously(auth);
+          } catch(e) {
+            console.warn("Firebase Init Error:", e);
+            window.loadDatabaseFallback();
           }
-        } catch (e) { console.warn("Firebase Init Error:", e); loadDatabaseFallback(); }
+        `;
+        document.body.appendChild(script1);
       }
 
       initIndexedDB().then(() => { console.log("IndexedDB 動画保管システムが正常にマウントされました。"); })
