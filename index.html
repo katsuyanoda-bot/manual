@@ -1339,12 +1339,19 @@
           let actionLabel = isTeam ? '📖 開いて閲覧' : '✏️ 復元して再編集';
           let deleteBtnHtml = (!isTeam || (currentUser && m.authorUid === currentUser.uid)) ? `<button onclick="window.deleteManual('${m.id}', event)" class="text-slate-400 hover:text-red-500 text-xs">&times; 削除</button>` : '';
 
-          // 🚨 追加: マニュアルドラッグ＆ドロップ対応
+          // 🚨 追加: 所属フォルダ名の取得
+          const fObj = window.dbState.folders.find(f => f.id === m.folderId);
+          const folderName = fObj ? fObj.name : '📁 未分類';
+
+          // 🚨 追加: マニュアルドラッグ＆ドロップ対応とフォルダバッジの表示
           return `
             <div ${isTeam ? '' : `draggable="true" ondragstart="window.handleDragStart(event, 'manual', '${m.id}')"`} class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[144px] ${isTeam ? '' : 'cursor-grab active:cursor-grabbing'}">
               <div>
                 <div class="flex items-center justify-between mb-1">
-                  <span class="text-[9px] text-slate-400 font-mono">📅 ${m.createdAt}</span>
+                  <div class="flex items-center gap-2 overflow-hidden">
+                    <span class="text-[9px] text-slate-400 font-mono whitespace-nowrap">📅 ${m.createdAt}</span>
+                    <span class="text-[9px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 truncate max-w-[120px]" title="${folderName}">${folderName}</span>
+                  </div>
                   ${deleteBtnHtml}
                 </div>
                 <h4 class="text-xs font-bold text-slate-800 line-clamp-2 cursor-pointer hover:text-brand-600 mb-1" onclick="window.openManualPreview('${m.id}')">📄 ${m.title}</h4>
