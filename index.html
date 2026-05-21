@@ -395,7 +395,7 @@
     </div>
   </div>
 
-  <!-- 4. 設定（パスコード変更）モーダル -->
+  <!-- 4. 設定（パスコード変更・保存先固定）モーダル -->
   <div id="settings-modal" class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 flex flex-col gap-4">
       <h3 class="font-bold text-slate-900 text-sm">⚙️ システム設定</h3>
@@ -609,7 +609,7 @@
     }
     window.toggleTabs = toggleTabs;
 
-    // showToast関数を早期呼び出しに備えてスクリプトの最上部に配置
+    // showToast関数
     function showToast(msg) {
       const t = document.createElement('div');
       t.className = 'fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-lg z-50 flex items-center gap-1.5 transition-all opacity-0 duration-300';
@@ -627,9 +627,9 @@
         }
       }, 3000);
     }
-    window.showToast = showToast; // 明示的にグローバルスコープへ展開
+    window.showToast = showToast;
 
-    // --- 📦 IndexedDB 動画ストレージ管理 (ローカル永続動画再生用) ---
+    // --- 📦 IndexedDB 動画ストレージ＆設定管理 ---
     const DB_NAME = 'manureco_videos_db';
     const STORE_NAME = 'videos';
     const SETTINGS_STORE = 'settings';
@@ -713,6 +713,7 @@
         req.onerror = (e) => reject(e.target.error);
       });
     }
+    window.saveDirHandle = saveDirHandle;
 
     function getDirHandle() {
       return new Promise((resolve, reject) => {
@@ -724,6 +725,7 @@
         req.onerror = (e) => reject(e.target.error);
       });
     }
+    window.getDirHandle = getDirHandle;
 
     // ディレクトリハンドルの権限検証
     async function verifyPermission(fileHandle, readWrite) {
@@ -733,6 +735,7 @@
       if ((await fileHandle.requestPermission(opts)) === 'granted') return true;
       return false;
     }
+    window.verifyPermission = verifyPermission;
 
     // ビデオ要素の安全制御
     function playVideo() {
@@ -819,29 +822,33 @@
     onEvent('gate-login-btn', 'click', tryLogin);
     onEvent('gate-password-input', 'keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
 
-    // --- 設定（パスコード変更）モーダル ---
+    // --- 設定（パスコード変更・フォルダ設定）モーダル ---
     onEvent('open-settings-btn', 'click', () => {
       setVal('settings-passcode-input', systemSettings.passcode);
       
       // デフォルト保存先名の読み込み
-      getDirHandle().then(data => {
-        if (data && data.name) {
-          setVal('settings-dir-name', '📁 ' + data.name);
-        } else {
-          setVal('settings-dir-name', '');
-        }
-      }).catch(e => console.warn(e));
+      if (typeof getDirHandle === 'function') {
+        getDirHandle().then(data => {
+          if (data && data.name) {
+            setVal('settings-dir-name', '📁 ' + data.name);
+          } else {
+            setVal('settings-dir-name', '');
+          }
+        }).catch(e => console.warn(e));
+      }
 
       removeClass('settings-modal', 'hidden');
     });
+    
     onEvent('close-settings-btn', 'click', () => addClass('settings-modal', 'hidden'));
+    
     onEvent('save-settings-btn', 'click', () => {
       const newPass = getVal('settings-passcode-input').trim();
       if (!newPass) { alert("パスコードを空にすることはできません。"); return; }
       systemSettings.passcode = newPass;
       localStorage.setItem('manureco_settings', JSON.stringify(systemSettings));
       addClass('settings-modal', 'hidden');
-      showToast("🔐 パスコード設定を新しく保存しました。");
+      showToast("🔐 システム設定を新しく保存しました。");
     });
 
     // フォルダ選択処理
@@ -852,9 +859,11 @@
       }
       try {
         const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        await saveDirHandle(dirHandle);
-        setVal('settings-dir-name', '📁 ' + dirHandle.name);
-        showToast("デフォルト保存先フォルダを設定しました！");
+        if (typeof saveDirHandle === 'function') {
+          await saveDirHandle(dirHandle);
+          setVal('settings-dir-name', '📁 ' + dirHandle.name);
+          showToast("デフォルト保存先フォルダを設定しました！");
+        }
       } catch (err) {
         console.warn("ディレクトリ選択がキャンセル、またはエラー:", err);
       }
