@@ -57,7 +57,7 @@
         <p class="text-sm text-slate-500 mt-2">マニュアルをクラウドに安全に同期・保管するため、Googleアカウントでログインしてください。</p>
       </div>
       <div class="space-y-3 mt-2">
-        <button id="google-login-btn" class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-3.5 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-3">
+        <button id="google-login-btn" onclick="handleGoogleLogin()" class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-3.5 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-3">
           <svg class="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -83,7 +83,7 @@
           </div>
           <div>
             <h1 class="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
-              ManuReco Pro <span class="text-[10px] bg-brand-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider">Library Mode</span>
+              ManuReco Pro <span class="text-[10px] bg-brand-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-wider">Cloud Sync</span>
             </h1>
             <p class="text-xs text-slate-500 font-medium">マニュアル自動生成・フォルダ保管・Notion連携システム</p>
           </div>
@@ -92,10 +92,11 @@
         <!-- ナビゲーションタブ＆パスコード設定 -->
         <div class="flex items-center gap-3">
           <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button id="nav-workspace-btn" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5">
+            <!-- 🚨 修正: HTML直接バインドで絶対にタブが切り替わるように設定 -->
+            <button id="nav-workspace-btn" onclick="toggleTabs(true)" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5">
               📝 ワークスペース
             </button>
-            <button id="nav-library-btn" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
+            <button id="nav-library-btn" onclick="toggleTabs(false)" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
               📁 保管ライブラリ (<span id="library-count-badge">0</span>)
             </button>
           </div>
@@ -108,7 +109,7 @@
 
     <!-- 環境警告バナー (iframe内実行時に動的表示) -->
     <div id="sandbox-banner" class="hidden bg-amber-50 border-b border-amber-200 px-6 py-2 text-amber-800 text-[11px] flex items-center justify-between transition-all">
-      <div class="flex items-center gap-2"><span>⚠️</span><span>埋め込み環境のため画面直接録画に制限があります。<strong>「動画ファイル読込」</strong>または<strong>「デモ体験」</strong>をご利用ください。</span></div>
+      <div class="flex items-center gap-2"><span>⚠️</span><span>環境の制限により画面直接録画機能が使えない場合があります。その際は<strong>「動画ファイル読込」</strong>をご利用ください。</span></div>
       <button onclick="document.getElementById('sandbox-banner').remove()" class="text-amber-500 hover:text-amber-800 font-bold px-2 text-sm">&times;</button>
     </div>
 
@@ -219,6 +220,14 @@
             <button id="stop-btn" disabled class="p-2.5 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed">⏹️ 停止</button>
             <button id="mic-toggle-btn" class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5">🎙️ マイク ON</button>
           </div>
+          
+          <!-- 🚨 修正: 録画停止後に確実に出現する「動画の保存先指定」アクションエリア -->
+          <div id="save-video-action-area" class="mt-1 hidden">
+            <button id="save-video-action-btn" class="w-full p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 shadow-md transition-all">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+              録画した動画の保存先を指定する (Googleドライブ等)
+            </button>
+          </div>
 
           <!-- 保管連携エリア -->
           <div id="save-library-banner" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3 hidden">
@@ -232,7 +241,7 @@
           </div>
         </div>
 
-        <!-- 右側：タイムライン＆メモエリア (✨ 手順書レベルアップ版) -->
+        <!-- 右側：タイムライン＆メモエリア (手順書レベルアップ版) -->
         <div class="lg:w-5/12 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           
           <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex flex-col gap-2.5">
@@ -459,12 +468,7 @@
   </div>
 
   <!-- JavaScript -->
-  <script type="module">
-    // 🚨 修正: Firebase SDKを統合し、GoogleログインおよびFirestore対応にアップグレード
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+  <script>
     // --- 🛡️ 安全なクラス操作・DOM操作ヘルパー (DOM Null安全化設計) ---
     function getEl(id) {
       return document.getElementById(id);
@@ -604,10 +608,7 @@
     }
     window.getFormattedDate = getFormattedDate;
 
-    // 🚨 修正: ワークスペースへの戻りバグを解消するタブ切り替えイベントバインド
-    onEvent('nav-workspace-btn', 'click', () => toggleTabs(true));
-    onEvent('nav-library-btn', 'click', () => toggleTabs(false));
-
+    // 🚨 修正: ワークスペースへの戻りバグを解消するタブ切り替え
     function toggleTabs(showWorkspace) {
       if (showWorkspace) {
         addClass('view-library', 'hidden');
@@ -778,19 +779,7 @@
 
     // --- 🔐 セキュリティ・Googleログイン・Firebase連携管理 ---
     let useFirebase = false;
-    let firebaseApp, auth, dbFirestore;
-    
-    if (typeof __firebase_config !== 'undefined') {
-      try {
-        const config = JSON.parse(__firebase_config);
-        firebaseApp = initializeApp(config);
-        auth = getAuth(firebaseApp);
-        dbFirestore = getFirestore(firebaseApp);
-        useFirebase = true;
-      } catch (e) { console.warn("Firebase Init Error:", e); }
-    }
-
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'manureco-pro-app';
+    let auth, dbFirestore, appId;
     let currentUser = null;
 
     // アプリ全体のグローバルなデータ状態
@@ -802,55 +791,6 @@
       ],
       manuals: []
     };
-
-    // 🚨 修正：Googleログイン処理の実装
-    function handleGoogleLogin() {
-      showToast("Googleアカウントで認証中...");
-      if (useFirebase) {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          signInWithCustomToken(auth, __initial_auth_token).catch(err => console.error(err));
-        } else {
-          try {
-            const provider = new GoogleAuthProvider();
-            signInWithPopup(auth, provider).catch(err => {
-              console.warn("Popup blocked, trying anonymous", err);
-              signInAnonymously(auth);
-            });
-          } catch(e) {
-            signInAnonymously(auth);
-          }
-        }
-      } else {
-        // GitHub Pages等の外部ホスト時（Local Fallback）
-        setTimeout(() => {
-          sessionStorage.setItem('manureco_logged_in', 'true');
-          bypassLogin();
-          loadDatabaseFallback();
-          showToast("認証成功 (ローカルモード稼働)");
-        }, 800);
-      }
-    }
-    onEvent('google-login-btn', 'click', handleGoogleLogin);
-
-    // Firebase Auth State Observer
-    if (useFirebase && auth) {
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          currentUser = user;
-          bypassLogin();
-          loadDatabase();
-        }
-      });
-    }
-
-    function checkLoginSession() {
-      if (useFirebase) return; // Firebase Authに委譲
-      if (sessionStorage.getItem('manureco_logged_in') === 'true') {
-        bypassLogin();
-        loadDatabaseFallback();
-      }
-    }
-    window.checkLoginSession = checkLoginSession;
 
     function bypassLogin() {
       addClass('login-gate', 'opacity-0 pointer-events-none');
@@ -866,47 +806,36 @@
       }
     }
 
-    // --- 設定（保存先固定）モーダル ---
-    onEvent('open-settings-btn', 'click', () => {
-      if (typeof getDirHandle === 'function') {
-        getDirHandle().then(data => {
-          if (data && data.name) {
-            setVal('settings-dir-name', '📁 ' + data.name);
-          } else {
-            setVal('settings-dir-name', '');
-          }
-        }).catch(e => console.warn(e));
-      }
-      removeClass('settings-modal', 'hidden');
-    });
-    onEvent('close-settings-btn', 'click', () => addClass('settings-modal', 'hidden'));
-    onEvent('save-settings-btn', 'click', () => {
-      addClass('settings-modal', 'hidden');
-      showToast("🔐 システム設定を保存しました。");
-    });
-
-    onEvent('select-dir-btn', 'click', async () => {
-      if (!('showDirectoryPicker' in window)) {
-        alert("お使いのブラウザはフォルダの固定機能（File System Access API）をサポートしていません。ChromeまたはEdgeをご利用ください。");
-        return;
-      }
-      try {
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        if (typeof saveDirHandle === 'function') {
-          await saveDirHandle(dirHandle);
-          setVal('settings-dir-name', '📁 ' + dirHandle.name);
-          showToast("デフォルト保存先フォルダを設定しました！");
+    // 🚨 修正：Googleログイン処理の実装
+    function handleGoogleLogin() {
+      showToast("Googleアカウントで認証中...");
+      if (useFirebase && auth && window.firebaseAuth) {
+        try {
+          const provider = new window.firebaseAuth.GoogleAuthProvider();
+          window.firebaseAuth.signInWithPopup(auth, provider).catch(err => {
+            console.warn("Popup blocked or failed, trying anonymous", err);
+            window.firebaseAuth.signInAnonymously(auth);
+          });
+        } catch(e) {
+          window.firebaseAuth.signInAnonymously(auth);
         }
-      } catch (err) {
-        console.warn("ディレクトリ選択がキャンセル、またはエラー:", err);
+      } else {
+        // GitHub Pages等の外部ホスト時（Firebase設定がない場合のLocal Fallback）
+        setTimeout(() => {
+          sessionStorage.setItem('manureco_logged_in', 'true');
+          bypassLogin();
+          loadDatabaseFallback();
+          showToast("認証成功 (ローカルモードで稼働中)");
+        }, 800);
       }
-    });
+    }
+    window.handleGoogleLogin = handleGoogleLogin;
 
     // --- 📂 データベース(Firestore / LocalStorage)状態管理 ---
     function loadDatabase() {
-      if (useFirebase && currentUser) {
-        const userDocRef = doc(dbFirestore, 'artifacts', appId, 'users', currentUser.uid, 'manureco_db', 'state');
-        onSnapshot(userDocRef, (docSnap) => {
+      if (useFirebase && currentUser && window.firebaseDb) {
+        const userDocRef = window.firebaseDb.doc(dbFirestore, 'artifacts', appId, 'users', currentUser.uid, 'manureco', 'state');
+        window.firebaseDb.onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             window.dbState = docSnap.data();
           } else {
@@ -921,9 +850,9 @@
     }
 
     function saveDatabase() {
-      if (useFirebase && currentUser) {
-        const userDocRef = doc(dbFirestore, 'artifacts', appId, 'users', currentUser.uid, 'manureco_db', 'state');
-        setDoc(userDocRef, window.dbState).then(() => {
+      if (useFirebase && currentUser && window.firebaseDb) {
+        const userDocRef = window.firebaseDb.doc(dbFirestore, 'artifacts', appId, 'users', currentUser.uid, 'manureco', 'state');
+        window.firebaseDb.setDoc(userDocRef, window.dbState).then(() => {
           setText('library-count-badge', window.dbState.manuals.length);
         }).catch(err => console.error(err));
       } else {
@@ -990,271 +919,7 @@
     let activeEditingManualId = null;
     let activeVideoBlob = null;
 
-    // --- ドラッグ&ドロップ & インポート処理 ---
-    onEvent('import-trigger-btn', 'click', () => {
-      const input = getEl('video-file-input');
-      if (input) input.click();
-    });
-    onEvent('video-file-input', 'change', (e) => {
-      if (e.target.files[0]) handleVideoFileImport(e.target.files[0]);
-    });
-
-    const vArea = getEl('video-area');
-    if (vArea) {
-      ['dragenter', 'dragover'].forEach(name => {
-        vArea.addEventListener(name, (e) => {
-          e.preventDefault();
-          addClass('video-area', 'border-brand-500 bg-slate-900/60');
-        });
-      });
-      ['dragleave', 'drop'].forEach(name => {
-        vArea.addEventListener(name, (e) => {
-          e.preventDefault();
-          removeClass('video-area', 'border-brand-500 bg-slate-900/60');
-        });
-      });
-      vArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files[0];
-        if (!file || !file.type.startsWith('video/')) {
-          showToast("有効な動画ファイルをドロップしてください。");
-          return;
-        }
-        
-        if (hasClass('video-attach-prompt', 'hidden') === false) {
-          handleVideoFileAttach(file);
-        } else {
-          handleVideoFileImport(file);
-        }
-      });
-    }
-
-    function handleVideoFileImport(file) {
-      isImportMode = true; isRecording = false; isDemoMode = false; stopTimer();
-      
-      activeVideoBlob = file; 
-      currentVideoFileInfo.name = file.name;
-      currentVideoFileInfo.size = file.size;
-      currentVideoFileInfo.url = URL.createObjectURL(file);
-
-      const vp = getEl('video-preview');
-      if (vp) {
-        vp.srcObject = null;
-        vp.src = currentVideoFileInfo.url;
-        vp.muted = false;
-        vp.controls = true;
-      }
-      removeClass('video-preview', 'hidden');
-      addClass('video-placeholder', 'hidden');
-      addClass('demo-simulator', 'hidden');
-      addClass('video-attach-prompt', 'hidden');
-
-      setText('timer-label', "PlaybackTime");
-      setText('timer-display', "00:00");
-      
-      const si = getEl('status-indicator');
-      if (si) {
-        si.className = "w-3.5 h-3.5 rounded-full bg-emerald-500";
-      }
-      
-      setText('status-text', "動画インポート完了");
-      setText('audio-status', "動画を再生・確認しながら時間連動の解説マニュアルを作成できます");
-
-      const memoTitleIn = getEl('memo-title-input');
-      const memoIn = getEl('memo-input');
-      if (memoTitleIn) {
-        memoTitleIn.disabled = false;
-        memoTitleIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
-        memoTitleIn.classList.add('bg-white');
-      }
-      if (memoIn) {
-        memoIn.disabled = false;
-        memoIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
-        memoIn.classList.add('bg-white', 'text-slate-900');
-        memoIn.placeholder = "詳細な手順やコツを入力...";
-      }
-      setProp('add-memo-btn', 'disabled', false);
-
-      if (vp) {
-        vp.ontimeupdate = () => {
-          setText('timer-display', formatTime(vp.currentTime));
-        };
-      }
-      
-      if (activeEditingManualId === null) {
-        currentTimelineData = [];
-        addTimelineItem(0, "インポート完了", `操作マニュアル動画「${file.name}」をインポートしました。`, "system");
-        setVal('workspace-manual-title', "インポートしたマニュアル");
-      } else {
-        addTimelineItem(getVideoCurrentTime(), "動画アタッチ完了", `新しい動画「${file.name}」がアタッチされました。`, "system");
-      }
-      
-      removeClass('save-library-banner', 'hidden');
-      if (recognition && !isMicMuted) { try { recognition.start(); } catch(e){} }
-      showToast("解説動画を正常に読み込みました。");
-    }
-
-    // --- 🔄 以前保存した動画のアタッチ（紐付け）ロジック ---
-    onEvent('attach-trigger-btn', 'click', () => {
-      const input = getEl('attach-file-input');
-      if (input) input.click();
-    });
-    onEvent('attach-file-input', 'change', (e) => {
-      if (e.target.files[0]) handleVideoFileAttach(e.target.files[0]);
-    });
-
-    function handleVideoFileAttach(file) {
-      activeVideoBlob = file; 
-      currentVideoFileInfo.name = file.name;
-      currentVideoFileInfo.size = file.size;
-      currentVideoFileInfo.url = URL.createObjectURL(file);
-
-      const vp = getEl('video-preview');
-      if (vp) {
-        vp.srcObject = null;
-        vp.src = currentVideoFileInfo.url;
-        vp.muted = false;
-        vp.controls = true;
-      }
-      removeClass('video-preview', 'hidden');
-      addClass('video-placeholder', 'hidden');
-      addClass('video-attach-prompt', 'hidden');
-
-      setText('timer-label', "PlaybackTime");
-      if (vp) {
-        vp.ontimeupdate = () => {
-          setText('timer-display', formatTime(vp.currentTime));
-        };
-      }
-
-      const memoTitleIn = getEl('memo-title-input');
-      const memoIn = getEl('memo-input');
-      if (memoTitleIn) {
-        memoTitleIn.disabled = false;
-        memoTitleIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
-        memoTitleIn.classList.add('bg-white');
-      }
-      if (memoIn) {
-        memoIn.disabled = false;
-        memoIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
-        memoIn.classList.add('bg-white', 'text-slate-900');
-      }
-      setProp('add-memo-btn', 'disabled', false);
-
-      showToast("動画を再アタッチしました。タイムラインと同期します。");
-    }
-
-    // --- リアルシミュレータデモモード ---
-    onEvent('demo-trigger-btn', 'click', startDemoMode);
-
-    function startDemoMode() {
-      isDemoMode = true; isRecording = false; isImportMode = false; stopTimer();
-      addClass('video-preview', 'hidden');
-      addClass('video-placeholder', 'hidden');
-      removeClass('demo-simulator', 'hidden');
-      addClass('video-attach-prompt', 'hidden');
-      
-      removeClass('recording-overlay', 'opacity-0');
-      addClass('recording-overlay', 'opacity-100');
-      
-      setText('rec-label-text', "SIMULATION");
-      setText('timer-label', "ElapsedTime");
-      setText('timer-display', "00:00");
-      
-      const si = getEl('status-indicator');
-      if (si) {
-        si.className = "w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse";
-      }
-      
-      setText('status-text', "デモ稼働中");
-
-      const memoTitleIn = getEl('memo-title-input');
-      const memoIn = getEl('memo-input');
-      if (memoTitleIn) {
-        memoTitleIn.disabled = false;
-        memoTitleIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
-        memoTitleIn.classList.add('bg-white');
-      }
-      if (memoIn) {
-        memoIn.disabled = false;
-        memoIn.classList.remove('bg-slate-100', 'cursor-not-allowed');
-        memoIn.classList.add('bg-white', 'text-slate-900');
-      }
-      setProp('add-memo-btn', 'disabled', false);
-
-      currentVideoFileInfo.name = "Demo_Simulation.webm";
-
-      demoTime = 0; clearInterval(demoInterval);
-      demoInterval = setInterval(() => {
-        demoTime++;
-        setText('timer-display', formatTime(demoTime));
-        if (demoTime === 2) animateVirtualCursor('30%', '15%');
-        if (demoTime === 3) {
-          createClickRipple();
-          setProp('demo-side-home', 'className', "p-1 text-slate-500");
-          setProp('demo-side-users', 'className', "p-1 bg-brand-600 text-white rounded font-medium");
-          setText('demo-content-title', "👥 登録メンバー名簿一覧");
-          setText('demo-content-desc', "組織のアクティブメンバーデータベース");
-          addTimelineItem(3, "ユーザー管理画面の展開", "サイドナビゲーションから「ユーザー管理」画面を展開します。", "step");
-        }
-        if (demoTime === 6) animateVirtualCursor('42%', '15%');
-        if (demoTime === 7) {
-          createClickRipple();
-          setProp('demo-side-users', 'className', "p-1 text-slate-500");
-          setProp('demo-side-settings', 'className', "p-1 bg-brand-600 text-white rounded font-medium");
-          setText('demo-content-title', "⚙️ システム環境設定");
-          setText('demo-content-desc', "基本構成クラスパラメーターの変更ノード。");
-          addTimelineItem(7, "環境設定の確認", "「システム環境設定」を選択し、構成アドレスパラメータを開きます。", "step");
-        }
-        if (demoTime === 10) animateVirtualCursor('82%', '75%');
-        if (demoTime === 11) {
-          createClickRipple();
-          removeClass('demo-dialog', 'hidden');
-          addTimelineItem(11, "リブート警告ダイアログ", "設定保存を押すとシステムよりリブート警告ダイアログが表示されます。", "important");
-        }
-        if (demoTime === 14) animateVirtualCursor('44%', '58%');
-        if (demoTime === 15) {
-          createClickRipple();
-          addClass('demo-dialog', 'hidden');
-          addTimelineItem(15, "リブートの確定", "警告内容を確認の上、「続行」ボタンを押して全体の適用リブートを確定させます。", "important");
-        }
-      }, 1000);
-
-      currentTimelineData = [];
-      addTimelineItem(0, "シミュレーション開始", "マニュアル生成の擬似シミュレーションを開始しました。", "system");
-      setVal('workspace-manual-title', "クラウド設定変更マニュアル");
-      removeClass('save-library-banner', 'hidden');
-      showToast("疑似デモを開始しました。右側の連動動作をご確認ください！");
-    }
-
-    onEvent('quit-demo-btn', 'click', () => {
-      isDemoMode = false; stopTimer(); resetToInitial();
-      addClass('demo-simulator', 'hidden');
-    });
-
-    function animateVirtualCursor(top, left) {
-      const cur = getEl('virtual-cursor');
-      if (cur) {
-        cur.style.transition = `all 1000ms ease-out`;
-        cur.style.top = top;
-        cur.style.left = left;
-      }
-    }
-    
-    function createClickRipple() {
-      const cur = getEl('virtual-cursor');
-      const sim = getEl('demo-simulator');
-      if (cur && sim) {
-        const ripple = document.createElement('div');
-        ripple.className = 'click-ripple';
-        ripple.style.left = `calc(${cur.style.left} - 2px)`;
-        ripple.style.top = `calc(${cur.style.top} + 2px)`;
-        sim.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 600);
-      }
-    }
-
-    // 🚨 画面録画データをGoogleドライブ等のローカル同期フォルダに直接保存する処理
+    // --- 🚨 画面録画データをGoogleドライブ等のローカル同期フォルダに直接保存する処理 ---
     async function saveCapturedVideoDirectly(blob, defaultName) {
       try {
         const dirData = await getDirHandle();
@@ -1302,103 +967,7 @@
       showToast("📥 通常ダウンロードを開始しました");
       return a.download;
     }
-
-    // --- 🚨 画面録画とブラウザ上での動画実体化・再閲覧機能 ---
-    onEvent('start-btn', 'click', async () => {
-      try {
-        recordedChunks = []; 
-        isImportMode = false; 
-        isDemoMode = false;
-        addClass('demo-simulator', 'hidden');
-        addClass('video-attach-prompt', 'hidden');
-        
-        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
-        
-        const vp = getEl('video-preview');
-        if (vp) {
-          vp.srcObject = screenStream;
-          vp.muted = true;
-          vp.play();
-        }
-        removeClass('video-preview', 'hidden');
-        addClass('video-placeholder', 'hidden');
-        
-        mediaRecorder = new MediaRecorder(screenStream, { mimeType: 'video/webm; codecs=vp9' });
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) {
-            recordedChunks.push(e.data);
-          }
-        };
-        
-        mediaRecorder.onstop = async () => {
-          const blob = new Blob(recordedChunks, { type: 'video/webm' });
-          activeVideoBlob = blob; 
-          
-          const objectUrl = URL.createObjectURL(blob);
-          const defaultFileName = "Manual_Recording_" + getFormattedDate() + ".webm";
-          
-          currentVideoFileInfo.name = defaultFileName;
-          currentVideoFileInfo.url = objectUrl;
-          currentVideoFileInfo.size = blob.size;
-
-          if (vp) {
-            vp.srcObject = null;
-            vp.src = objectUrl;
-            vp.controls = true;
-            vp.muted = false; 
-          }
-          
-          const savedName = await saveCapturedVideoDirectly(blob, defaultFileName);
-          if (savedName) {
-            setVal('modal-video-name', savedName);
-            currentVideoFileInfo.name = savedName;
-          } else {
-             setVal('modal-video-name', currentVideoFileInfo.name);
-          }
-          
-          removeClass('save-library-banner', 'hidden');
-          showToast("収録完了。ブラウザ上で再度動画を閲覧・確認できるようになりました！");
-        };
-
-        mediaRecorder.start(1000);
-        
-        isRecording = true; 
-        startTimer(); 
-        updateUIState(true);
-        currentVideoFileInfo.name = "Recording_" + getFormattedDate() + ".webm";
-        
-        currentTimelineData = []; 
-        addTimelineItem(0, "収録の開始", "マニュアル動画のキャプチャ収録を開始しました。", "system");
-        setVal('workspace-manual-title', "新規録画マニュアル");
-        
-      } catch (err) {
-        console.warn("Screen Capture Restricted. Open Fallback UI.", err);
-        removeClass('fallback-modal', 'hidden');
-        resetToInitial();
-      }
-    });
-
-    onEvent('stop-btn', 'click', () => {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-      isRecording = false; 
-      stopTimer(); 
-      updateUIState(false);
-      if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-      showToast("動画の書き出しと保存準備を行っています...");
-    });
-
-    // --- 各種状態フラグの下でDOM要素取得 ---
-    const timelineContainer = document.getElementById('timeline-container');
-    const timelinePlaceholder = document.getElementById('timeline-placeholder');
-    const clearTimelineBtn = document.getElementById('clear-timeline-btn');
-    
-    const memoTitleInput = document.getElementById('memo-title-input');
-    const memoInput = document.getElementById('memo-input');
-    const addMemoBtn = document.getElementById('add-memo-btn');
-    const tagButtons = document.querySelectorAll('.tag-btn');
-    const saveLibraryBanner = document.getElementById('save-library-banner');
+    window.saveCapturedVideoDirectly = saveCapturedVideoDirectly;
 
     // --- タイムライン制御コア ---
     function addTimelineItem(time, title, text, type) {
@@ -1455,7 +1024,6 @@
         if (tc) tc.appendChild(row);
       });
 
-      // ジャンプイベント
       if (tc) {
         tc.querySelectorAll('.stamp-jump').forEach(btn => {
           btn.addEventListener('click', () => {
@@ -1471,7 +1039,6 @@
           });
         });
         
-        // インプレース直接編集 (タイトル＆詳細)
         tc.querySelectorAll('.edit-title-node').forEach(inp => {
           inp.addEventListener('blur', () => {
             const id = inp.getAttribute('data-id');
@@ -1496,7 +1063,7 @@
     function sendMemo() {
       const titleVal = getVal('memo-title-input').trim();
       const textVal = getVal('memo-input').trim(); 
-      if (!textVal && !titleVal) return; // 両方空なら無視
+      if (!textVal && !titleVal) return; 
       
       addTimelineItem(getCurrentTimestamp(), titleVal, textVal, activeTag);
       
@@ -1504,104 +1071,7 @@
       setVal('memo-input', '');
       if (getEl('memo-title-input')) getEl('memo-title-input').focus();
     }
-    
-    onEvent('add-memo-btn', 'click', sendMemo);
-    onEvent('memo-input', 'keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMemo();
-    });
-    onEvent('memo-title-input', 'keydown', (e) => {
-      if (e.key === 'Enter') {
-        if (e.ctrlKey || e.metaKey) sendMemo();
-        else if (getEl('memo-input')) getEl('memo-input').focus();
-      }
-    });
-
-    onEvent('clear-timeline-btn', 'click', () => {
-      if(confirm('タイムラインのすべての項目を消去しますか？')) {
-        currentTimelineData = [];
-        renderTimeline();
-      }
-    });
-
-    // タグ選択のイベントバインド
-    if (tagButtons && tagButtons.length > 0) {
-      tagButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          tagButtons.forEach(b => b.className = "tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600");
-          activeTag = btn.getAttribute('data-tag');
-          btn.className = `tag-btn text-[10px] px-2.5 py-0.5 rounded-full scale-105 font-bold ${activeTag==='step'?'bg-brand-100 text-brand-700':activeTag==='important'?'bg-amber-100 text-amber-700':'bg-emerald-100 text-emerald-700'}`;
-        });
-      });
-    }
-
-    // --- 📦 ライブラリ保管＆フォルダ管理ロジック ---
-    onEvent('open-save-modal-btn', 'click', () => {
-      const currentWorkspaceTitle = getVal('workspace-manual-title').trim();
-      setVal('modal-manual-title', currentWorkspaceTitle || (isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書"));
-      
-      setHtml('modal-manual-folder', window.dbState.folders.filter(f => f.id !== 'f-all').map(f => `<option value="${f.id}">${f.name}</option>`).join(''));
-      
-      setVal('modal-video-name', currentVideoFileInfo.name || "アタッチ動画なし");
-      setVal('modal-video-url', '');
-      
-      removeClass('save-modal', 'hidden');
-    });
-    onEvent('close-save-modal-btn', 'click', () => addClass('save-modal', 'hidden'));
-
-    onEvent('execute-save-btn', 'click', () => {
-      const title = getVal('modal-manual-title').trim();
-      const folderId = getVal('modal-manual-folder');
-      const vName = getVal('modal-video-name');
-      const vUrl = getVal('modal-video-url').trim();
-      
-      if (!title) { alert('マニュアルのタイトルを入力してください。'); return; }
-
-      const newManual = {
-        id: activeEditingManualId || 'm-' + Date.now(),
-        title: title,
-        folderId: folderId,
-        createdAt: getFormattedDate(true),
-        videoName: vName !== "アタッチ動画なし" ? vName : "",
-        videoUrl: vUrl,
-        timeline: [...currentTimelineData]
-      };
-
-      // IndexedDBへ動画Blobデータの永続保管処理を実行
-      if (activeVideoBlob) {
-        saveVideoBlob(newManual.id, activeVideoBlob)
-          .then(() => console.log("IndexedDBに動画Blobを永続保存しました。"))
-          .catch(err => console.error("IndexedDBへの動画保存に失敗しました:", err));
-      }
-
-      if (activeEditingManualId !== null) {
-        const idx = window.dbState.manuals.findIndex(m => m.id === activeEditingManualId);
-        if (idx !== -1) {
-          window.dbState.manuals[idx] = newManual;
-        }
-        showToast("✔️ 保管中のマニュアルを上書き更新しました！");
-      } else {
-        window.dbState.manuals.push(newManual);
-        showToast("✔️ ライブラリに安全にマニュアルを新規保管しました！");
-      }
-
-      saveDatabase();
-      addClass('save-modal', 'hidden');
-      activeEditingManualId = null;
-      activeVideoBlob = null; // メモリクリア
-      
-      toggleTabs(false);
-      renderLibrary();
-    });
-
-    // フォルダ新規追加
-    onEvent('add-folder-btn', 'click', () => {
-      const name = prompt('新規作成するマニュアルフォルダ名を入力してください：');
-      if (name) {
-        window.dbState.folders.push({ id: 'f-' + Date.now(), name: '📁 ' + name });
-        saveDatabase();
-        renderLibrary();
-      }
-    });
+    window.sendMemo = sendMemo;
 
     // 📁 ライブラリ描画コア
     function renderLibrary() {
@@ -1663,6 +1133,7 @@
         }).join('');
       }
     }
+    window.renderLibrary = renderLibrary;
 
     window.selectFolder = function(id) {
       currentSelectedFolderId = id;
@@ -1690,13 +1161,9 @@
       currentTimelineData = [...m.timeline];
       
       resetToInitial();
-      
-      // ワークスペースのタイトルにマニュアル名を復元
       setVal('workspace-manual-title', m.title);
-      
       renderTimeline();
 
-      // IndexedDBから動画Blobデータの自動復元を非同期実行
       getVideoBlob(m.id).then(storedBlob => {
         if (storedBlob) {
           isImportMode = true;
@@ -1711,17 +1178,13 @@
             vp.src = objectUrl;
             vp.muted = false;
             vp.controls = true;
+            vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); };
           }
           removeClass('video-preview', 'hidden');
           addClass('video-placeholder', 'hidden');
           addClass('video-attach-prompt', 'hidden');
           
           setText('timer-label', "PlaybackTime");
-          if (vp) {
-            vp.ontimeupdate = () => {
-              setText('timer-display', formatTime(vp.currentTime));
-            };
-          }
           updateUIState(false);
           showToast("💾 保管動画を自動ロードして再生を開始しました！");
         } else if (m.videoUrl) {
@@ -1732,26 +1195,20 @@
             vp.src = m.videoUrl;
             vp.muted = false;
             vp.controls = true;
+            vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); };
           }
           removeClass('video-preview', 'hidden');
           addClass('video-placeholder', 'hidden');
           addClass('video-attach-prompt', 'hidden');
           
           setText('timer-label', "PlaybackTime");
-          if (vp) {
-            vp.ontimeupdate = () => {
-              setText('timer-display', formatTime(vp.currentTime));
-            };
-          }
           updateUIState(false);
           showToast("🔗 外部動画URLからメディアを読み込みました");
         } else if (m.videoName) {
           addClass('video-preview', 'hidden');
           addClass('video-placeholder', 'hidden');
-          
           setText('attach-file-name', m.videoName);
           removeClass('video-attach-prompt', 'hidden');
-          
           updateUIState(false);
           showToast("📼 動画ファイル『" + m.videoName + "』のアタッチが必要です");
         } else {
@@ -1769,7 +1226,7 @@
       });
 
       removeClass('save-library-banner', 'hidden');
-      toggleTabs(true); // バグ修正: ワークスペースへ正常に戻る
+      toggleTabs(true); // バグ修正: ワークスペースへ確実に遷移する
     };
 
     // Notion連携埋め込み用ポップアップ呼び出し
@@ -1782,7 +1239,6 @@
       const simulatedShareUrl = `${baseAppUrl}?id=${m.id}&p=${systemSettings.passcode}`;
       setVal('share-url-input', simulatedShareUrl);
 
-      // Notionコピペトグルテキストの生成
       let notionMd = `### 📄 ${m.title}\n`;
       notionMd += `*作成日: ${m.createdAt}*\n\n`;
       notionMd += `> 💡 **ManuReco タイムスタンプガイド:** 各項目に付与されたタイムスタンプ（例 \`[01:12]\`）は、動画マニュアルの再生時間を指しています。\n\n`;
@@ -1815,47 +1271,6 @@
       removeClass('share-modal', 'hidden');
     };
 
-    onEvent('close-share-modal-btn', 'click', () => addClass('share-modal', 'hidden'));
-    onEvent('close-fallback-btn', 'click', () => addClass('fallback-modal', 'hidden'));
-    
-    // コピペ制御
-    onEvent('copy-notion-md-btn', 'click', () => {
-      const output = getEl('notion-markdown-output');
-      if (output) {
-        output.select();
-        document.execCommand('copy');
-        showToast("Notion専用マニュアルテキストをコピーしました！");
-      }
-    });
-
-    onEvent('copy-url-btn', 'click', () => {
-      const input = getEl('share-url-input');
-      if (input) {
-        input.select();
-        document.execCommand('copy');
-        showToast("共有用埋め込みURLをコピーしました！");
-      }
-    });
-
-    // Notion共有モーダルのタブ切り替え
-    onEvent('share-tab-copy', 'click', () => {
-      const copyBtn = getEl('share-tab-copy');
-      const embedBtn = getEl('share-tab-embed');
-      if (copyBtn) copyBtn.className = "flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center";
-      if (embedBtn) embedBtn.className = "flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center";
-      removeClass('share-panel-copy', 'hidden');
-      addClass('share-panel-embed', 'hidden');
-    });
-
-    onEvent('share-tab-embed', 'click', () => {
-      const copyBtn = getEl('share-tab-copy');
-      const embedBtn = getEl('share-tab-embed');
-      if (embedBtn) embedBtn.className = "flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center";
-      if (copyBtn) copyBtn.className = "flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center";
-      removeClass('share-panel-embed', 'hidden');
-      addClass('share-panel-copy', 'hidden');
-    });
-
     // 詳細プレビュー
     window.openManualPreview = function(id) {
       const m = window.dbState.manuals.find(manual => manual.id === id);
@@ -1885,7 +1300,6 @@
       }
       removeClass('preview-modal', 'hidden');
     };
-    onEvent('close-preview-modal-btn', 'click', () => addClass('preview-modal', 'hidden'));
 
     // --- 各種ヘルパーユーティリティ ---
     function updateUIState(rec) {
@@ -1950,23 +1364,236 @@
       }
       setProp('add-memo-btn', 'disabled', true);
       
-      setVal('workspace-manual-title', ''); // タイトルリセット
+      setVal('workspace-manual-title', ''); 
       
       addClass('video-preview', 'hidden');
       removeClass('video-placeholder', 'hidden');
       addClass('video-attach-prompt', 'hidden');
+      addClass('save-video-action-area', 'hidden');
       addClass('recording-overlay', 'opacity-0');
     }
 
-    // --- セッション認証＆初期ロードの実行 ---
-    initIndexedDB().then(() => {
-      console.log("IndexedDB 動画保管システムが正常にマウントされました。");
-    }).catch(err => {
-      console.warn("IndexedDBの初期化に失敗しました:", err);
-    });
+    // ==========================================
+    // 全イベントリスナーの登録と初期化 (DOM Load後)
+    // ==========================================
+    window.onload = () => {
+      // モーダル系
+      onEvent('close-share-modal-btn', 'click', () => addClass('share-modal', 'hidden'));
+      onEvent('close-fallback-btn', 'click', () => addClass('fallback-modal', 'hidden'));
+      onEvent('close-preview-modal-btn', 'click', () => addClass('preview-modal', 'hidden'));
+      
+      onEvent('copy-notion-md-btn', 'click', () => {
+        const output = getEl('notion-markdown-output');
+        if (output) { output.select(); document.execCommand('copy'); showToast("Notionテキストをコピーしました！"); }
+      });
+      onEvent('copy-url-btn', 'click', () => {
+        const input = getEl('share-url-input');
+        if (input) { input.select(); document.execCommand('copy'); showToast("URLをコピーしました！"); }
+      });
 
-    // 最初に初期化
-    checkLoginSession();
+      onEvent('share-tab-copy', 'click', () => {
+        setProp('share-tab-copy', 'className', "flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center");
+        setProp('share-tab-embed', 'className', "flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center");
+        removeClass('share-panel-copy', 'hidden'); addClass('share-panel-embed', 'hidden');
+      });
+
+      onEvent('share-tab-embed', 'click', () => {
+        setProp('share-tab-embed', 'className', "flex-1 py-2 font-bold border-b-2 border-brand-600 text-brand-600 text-center");
+        setProp('share-tab-copy', 'className', "flex-1 py-2 font-bold text-slate-400 hover:text-slate-700 text-center");
+        removeClass('share-panel-embed', 'hidden'); addClass('share-panel-copy', 'hidden');
+      });
+
+      // メモ系
+      onEvent('add-memo-btn', 'click', sendMemo);
+      onEvent('memo-input', 'keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendMemo(); });
+      onEvent('memo-title-input', 'keydown', (e) => { if (e.key === 'Enter') { if (e.ctrlKey || e.metaKey) sendMemo(); else if (getEl('memo-input')) getEl('memo-input').focus(); }});
+      onEvent('clear-timeline-btn', 'click', () => { if(confirm('タイムラインを消去しますか？')) { currentTimelineData = []; renderTimeline(); }});
+
+      const tagButtons = document.querySelectorAll('.tag-btn');
+      if (tagButtons) {
+        tagButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            tagButtons.forEach(b => b.className = "tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600");
+            activeTag = btn.getAttribute('data-tag');
+            btn.className = `tag-btn text-[10px] px-2.5 py-0.5 rounded-full scale-105 font-bold ${activeTag==='step'?'bg-brand-100 text-brand-700':activeTag==='important'?'bg-amber-100 text-amber-700':'bg-emerald-100 text-emerald-700'}`;
+          });
+        });
+      }
+
+      // 保管ロジック
+      onEvent('open-save-modal-btn', 'click', () => {
+        const currentWorkspaceTitle = getVal('workspace-manual-title').trim();
+        setVal('modal-manual-title', currentWorkspaceTitle || (isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書"));
+        setHtml('modal-manual-folder', window.dbState.folders.filter(f => f.id !== 'f-all').map(f => `<option value="${f.id}">${f.name}</option>`).join(''));
+        setVal('modal-video-name', currentVideoFileInfo.name || "アタッチ動画なし");
+        setVal('modal-video-url', '');
+        removeClass('save-modal', 'hidden');
+      });
+      onEvent('close-save-modal-btn', 'click', () => addClass('save-modal', 'hidden'));
+
+      onEvent('execute-save-btn', 'click', () => {
+        const title = getVal('modal-manual-title').trim();
+        const folderId = getVal('modal-manual-folder');
+        const vName = getVal('modal-video-name');
+        const vUrl = getVal('modal-video-url').trim();
+        
+        if (!title) { alert('マニュアルのタイトルを入力してください。'); return; }
+
+        const newManual = {
+          id: activeEditingManualId || 'm-' + Date.now(),
+          title: title,
+          folderId: folderId,
+          createdAt: getFormattedDate(true),
+          videoName: vName !== "アタッチ動画なし" ? vName : "",
+          videoUrl: vUrl,
+          timeline: [...currentTimelineData]
+        };
+
+        if (activeVideoBlob) {
+          saveVideoBlob(newManual.id, activeVideoBlob).catch(err => console.error(err));
+        }
+
+        if (activeEditingManualId !== null) {
+          const idx = window.dbState.manuals.findIndex(m => m.id === activeEditingManualId);
+          if (idx !== -1) window.dbState.manuals[idx] = newManual;
+          showToast("✔️ 保管中のマニュアルを上書き更新しました！");
+        } else {
+          window.dbState.manuals.push(newManual);
+          showToast("✔️ ライブラリに安全にマニュアルを新規保管しました！");
+        }
+
+        saveDatabase();
+        addClass('save-modal', 'hidden');
+        activeEditingManualId = null;
+        activeVideoBlob = null; 
+        
+        toggleTabs(false);
+        renderLibrary();
+      });
+
+      onEvent('add-folder-btn', 'click', () => {
+        const name = prompt('新規作成するマニュアルフォルダ名を入力してください：');
+        if (name) {
+          window.dbState.folders.push({ id: 'f-' + Date.now(), name: '📁 ' + name });
+          saveDatabase();
+          renderLibrary();
+        }
+      });
+
+      // 🚨 録画完了後の手動保存アクション (Transient activation required の回避)
+      onEvent('save-video-action-btn', 'click', async () => {
+        const defaultFileName = currentVideoFileInfo.name || "Manual_Recording_" + getFormattedDate() + ".webm";
+        const savedName = await saveCapturedVideoDirectly(activeVideoBlob, defaultFileName);
+        if (savedName) {
+          setVal('modal-video-name', savedName);
+          currentVideoFileInfo.name = savedName;
+          showToast("動画を保存しました。マニュアルを保管してください。");
+        }
+        addClass('save-video-action-area', 'hidden'); 
+      });
+
+      // 🚨 録画と停止
+      onEvent('start-btn', 'click', async () => {
+        try {
+          recordedChunks = []; 
+          isImportMode = false; isDemoMode = false;
+          addClass('demo-simulator', 'hidden');
+          addClass('video-attach-prompt', 'hidden');
+          addClass('save-video-action-area', 'hidden');
+          
+          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
+          const vp = getEl('video-preview');
+          if (vp) { vp.srcObject = screenStream; vp.muted = true; vp.play(); }
+          removeClass('video-preview', 'hidden');
+          addClass('video-placeholder', 'hidden');
+          
+          mediaRecorder = new MediaRecorder(screenStream, { mimeType: 'video/webm; codecs=vp9' });
+          mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+          
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            activeVideoBlob = blob; 
+            const objectUrl = URL.createObjectURL(blob);
+            currentVideoFileInfo.name = "Manual_Recording_" + getFormattedDate() + ".webm";
+            currentVideoFileInfo.url = objectUrl;
+            currentVideoFileInfo.size = blob.size;
+
+            if (vp) { vp.srcObject = null; vp.src = objectUrl; vp.controls = true; vp.muted = false; }
+            
+            removeClass('save-video-action-area', 'hidden'); // 保存アクションボタンを表示
+            removeClass('save-library-banner', 'hidden');
+            showToast("収録完了。上の「保存先を指定する」ボタンを押して動画をPCに保存してください。");
+          };
+
+          mediaRecorder.start(1000);
+          isRecording = true; startTimer(); updateUIState(true);
+          currentVideoFileInfo.name = "Recording_" + getFormattedDate() + ".webm";
+          
+          currentTimelineData = []; 
+          addTimelineItem(0, "収録の開始", "マニュアル動画のキャプチャ収録を開始しました。", "system");
+          setVal('workspace-manual-title', "新規録画マニュアル");
+          
+        } catch (err) {
+          console.warn("Capture error", err);
+          removeClass('fallback-modal', 'hidden');
+          resetToInitial();
+        }
+      });
+
+      onEvent('stop-btn', 'click', () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        isRecording = false; stopTimer(); updateUIState(false);
+        if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+      });
+
+      // Firebase 初期化の非同期実行
+      async function initFirebaseAsync() {
+        if (typeof __firebase_config === 'undefined') {
+          loadDatabaseFallback();
+          return;
+        }
+        try {
+          const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+          const { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+          const { getFirestore, doc, setDoc, collection, onSnapshot } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+          
+          const config = JSON.parse(__firebase_config);
+          firebaseApp = initializeApp(config);
+          auth = getAuth(firebaseApp);
+          dbFirestore = getFirestore(firebaseApp);
+          appId = typeof __app_id !== 'undefined' ? __app_id : 'manureco-pro-app';
+          useFirebase = true;
+
+          window.firebaseAuth = { signInWithCustomToken, signInAnonymously, GoogleAuthProvider, signInWithPopup };
+          window.firebaseDb = { doc, setDoc, collection, onSnapshot };
+
+          onAuthStateChanged(auth, (user) => {
+            if (user && !user.isAnonymous) {
+              currentUser = user;
+              bypassLogin();
+              loadDatabase();
+            }
+          });
+          
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+             await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+             await signInAnonymously(auth);
+          }
+        } catch (e) {
+          console.warn("Firebase Init Error:", e);
+          loadDatabaseFallback();
+        }
+      }
+
+      initIndexedDB().then(() => {
+        console.log("IndexedDB 動画保管システムが正常にマウントされました。");
+      }).catch(err => {
+        console.warn("IndexedDBの初期化に失敗しました:", err);
+      });
+
+      initFirebaseAsync();
+    };
   </script>
 </body>
 </html>
