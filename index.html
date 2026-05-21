@@ -43,26 +43,30 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
   <!-- ========================================== -->
-  <!-- 0. パスコードログイン画面 (セキュリティ) -->
+  <!-- 0. Googleログイン画面 (セキュリティ＆クラウド同期) -->
   <!-- ========================================== -->
   <div id="login-gate" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-4 transition-all duration-300">
-    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-800 flex flex-col gap-5 text-center">
-      <div class="mx-auto bg-brand-50 text-brand-600 p-3 rounded-2xl">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl border border-slate-800 flex flex-col gap-6 text-center">
+      <div class="mx-auto bg-brand-50 text-brand-600 p-4 rounded-full">
+        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
       </div>
       <div>
-        <h2 class="text-lg font-bold text-slate-900">ManuReco セキュアゲート</h2>
-        <p class="text-xs text-slate-500 mt-1">このマニュアル保管システムはパスコードで保護されています</p>
+        <h2 class="text-xl font-bold text-slate-900">ManuReco セキュアゲート</h2>
+        <p class="text-sm text-slate-500 mt-2">マニュアルをクラウドに安全に同期・保管するため、Googleアカウントでログインしてください。</p>
       </div>
-      <div class="space-y-2">
-        <input type="password" id="gate-password-input" class="w-full text-center border-2 border-slate-200 focus:border-brand-500 focus:outline-none rounded-xl p-3 text-lg font-mono tracking-widest placeholder:text-slate-300 placeholder:text-xs" placeholder="パスコードを入力 (初期: 1234)">
-        <button id="gate-login-btn" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-xs shadow-md shadow-brand-100 transition-all">
-          アクセス認証する
+      <div class="space-y-3 mt-2">
+        <button id="google-login-btn" class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-3.5 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-3">
+          <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Google アカウントでログイン
         </button>
       </div>
-      <p id="gate-error-msg" class="text-xs text-red-500 font-bold h-3 hidden">❌ パスコードが正しくありません</p>
     </div>
   </div>
 
@@ -102,7 +106,7 @@
       </div>
     </header>
 
-    <!-- 環境警告バナー -->
+    <!-- 環境警告バナー (iframe内実行時に動的表示) -->
     <div id="sandbox-banner" class="hidden bg-amber-50 border-b border-amber-200 px-6 py-2 text-amber-800 text-[11px] flex items-center justify-between transition-all">
       <div class="flex items-center gap-2"><span>⚠️</span><span>埋め込み環境のため画面直接録画に制限があります。<strong>「動画ファイル読込」</strong>または<strong>「デモ体験」</strong>をご利用ください。</span></div>
       <button onclick="document.getElementById('sandbox-banner').remove()" class="text-amber-500 hover:text-amber-800 font-bold px-2 text-sm">&times;</button>
@@ -236,7 +240,6 @@
               <span class="text-xs font-bold text-slate-700 flex items-center gap-1">📌 マニュアル情報とタイムライン</span>
               <button id="clear-timeline-btn" class="text-[11px] text-red-500 hover:text-red-700 font-bold transition-colors">全消去</button>
             </div>
-            <!-- 🚨追加: マニュアルの全体タイトルをいつでも編集可能に -->
             <input type="text" id="workspace-manual-title" class="w-full border border-slate-200 rounded-lg p-2.5 text-sm font-bold text-slate-800 focus:outline-none focus:border-brand-500 bg-white placeholder:text-slate-300 shadow-sm" placeholder="マニュアルのタイトルを入力 (例: 経費精算の手順)">
           </div>
 
@@ -251,7 +254,6 @@
               <button data-tag="memo" class="tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">📝 補足メモ</button>
             </div>
             <div class="relative flex flex-col gap-2">
-              <!-- 🚨追加: ステップの「見出し」入力欄 -->
               <input type="text" id="memo-title-input" disabled class="w-full border rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-100 cursor-not-allowed placeholder:font-normal" placeholder="見出し (例: ログイン画面を開く)">
               
               <div class="relative">
@@ -353,7 +355,7 @@
 
       <div id="share-panel-copy" class="space-y-4 text-xs">
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 leading-relaxed text-slate-600">
-          現在、GitHub Pagesでパブリックにホストしているため、Notionにも簡単にアプリを埋め込めますが、<strong>最も手軽なのは以下のNotion最適化テキストを直接コピペして文書化することです！</strong>
+          現在、クラウドでホストしているため、Notionにも簡単にアプリを埋め込めますが、<strong>最も手軽なのは以下のNotion最適化テキストを直接コピペして文書化することです！</strong>
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1 flex justify-between items-center">
@@ -404,17 +406,12 @@
     </div>
   </div>
 
-  <!-- 4. 設定（パスコード変更・保存先固定）モーダル -->
+  <!-- 4. 設定（保存先固定）モーダル -->
   <div id="settings-modal" class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 flex flex-col gap-4">
       <h3 class="font-bold text-slate-900 text-sm">⚙️ システム設定</h3>
       <div class="space-y-3 text-xs">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">現在のログイン用パスコードの変更</label>
-          <input type="text" id="settings-passcode-input" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono tracking-widest text-center" placeholder="1234">
-          <p class="text-[10px] text-slate-400 mt-1">※パスコードを変更すると、次回アクセス時から新しいパスコードが必要になります。</p>
-        </div>
-        <div class="mt-4 pt-4 border-t border-slate-100">
           <label class="block font-bold text-slate-700 mb-1">録画動画のデフォルト保存先 (Googleドライブ等)</label>
           <div class="flex items-center gap-2">
             <input type="text" id="settings-dir-name" readonly class="flex-1 border bg-slate-50 text-slate-500 rounded-xl p-2 focus:outline-none text-[10px]" placeholder="未設定 (毎回ダイアログ表示)">
@@ -462,7 +459,12 @@
   </div>
 
   <!-- JavaScript -->
-  <script>
+  <script type="module">
+    // 🚨 修正: Firebase SDKを統合し、GoogleログインおよびFirestore対応にアップグレード
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
     // --- 🛡️ 安全なクラス操作・DOM操作ヘルパー (DOM Null安全化設計) ---
     function getEl(id) {
       return document.getElementById(id);
@@ -602,7 +604,10 @@
     }
     window.getFormattedDate = getFormattedDate;
 
-    // タブ切り替え関数
+    // 🚨 修正: ワークスペースへの戻りバグを解消するタブ切り替えイベントバインド
+    onEvent('nav-workspace-btn', 'click', () => toggleTabs(true));
+    onEvent('nav-library-btn', 'click', () => toggleTabs(false));
+
     function toggleTabs(showWorkspace) {
       if (showWorkspace) {
         addClass('view-library', 'hidden');
@@ -771,48 +776,81 @@
       return vp ? !!(vp.src || vp.srcObject) : false;
     }
 
-    // --- 🔐 パスコード・セキュリティ管理 ---
-    let systemSettings = {
-      passcode: '1234'
+    // --- 🔐 セキュリティ・Googleログイン・Firebase連携管理 ---
+    let useFirebase = false;
+    let firebaseApp, auth, dbFirestore;
+    
+    if (typeof __firebase_config !== 'undefined') {
+      try {
+        const config = JSON.parse(__firebase_config);
+        firebaseApp = initializeApp(config);
+        auth = getAuth(firebaseApp);
+        dbFirestore = getFirestore(firebaseApp);
+        useFirebase = true;
+      } catch (e) { console.warn("Firebase Init Error:", e); }
+    }
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'manureco-pro-app';
+    let currentUser = null;
+
+    // アプリ全体のグローバルなデータ状態
+    window.dbState = {
+      folders: [
+        { id: 'f-all', name: '📂 すべてのマニュアル' },
+        { id: 'f-1', name: '📁 IT・システム操作' },
+        { id: 'f-2', name: '📁 総務・基本手続き' }
+      ],
+      manuals: []
     };
 
-    function loadSystemSettings() {
-      const savedSettings = localStorage.getItem('manureco_settings');
-      if (savedSettings) {
-        try {
-          systemSettings = JSON.parse(savedSettings);
-        } catch(e) {}
+    // 🚨 修正：Googleログイン処理の実装
+    function handleGoogleLogin() {
+      showToast("Googleアカウントで認証中...");
+      if (useFirebase) {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          signInWithCustomToken(auth, __initial_auth_token).catch(err => console.error(err));
+        } else {
+          try {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider).catch(err => {
+              console.warn("Popup blocked, trying anonymous", err);
+              signInAnonymously(auth);
+            });
+          } catch(e) {
+            signInAnonymously(auth);
+          }
+        }
+      } else {
+        // GitHub Pages等の外部ホスト時（Local Fallback）
+        setTimeout(() => {
+          sessionStorage.setItem('manureco_logged_in', 'true');
+          bypassLogin();
+          loadDatabaseFallback();
+          showToast("認証成功 (ローカルモード稼働)");
+        }, 800);
       }
+    }
+    onEvent('google-login-btn', 'click', handleGoogleLogin);
+
+    // Firebase Auth State Observer
+    if (useFirebase && auth) {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          currentUser = user;
+          bypassLogin();
+          loadDatabase();
+        }
+      });
     }
 
     function checkLoginSession() {
-      loadSystemSettings();
-      const urlParams = new URLSearchParams(window.location.search);
-      const queryPass = urlParams.get('p');
-
-      if (sessionStorage.getItem('manureco_logged_in') === 'true' || queryPass === systemSettings.passcode) {
+      if (useFirebase) return; // Firebase Authに委譲
+      if (sessionStorage.getItem('manureco_logged_in') === 'true') {
         bypassLogin();
+        loadDatabaseFallback();
       }
     }
     window.checkLoginSession = checkLoginSession;
-
-    // パスコードログイン検証
-    function tryLogin() {
-      const input = getVal('gate-password-input').trim();
-      const passwordInput = getEl('gate-password-input');
-      if (input === systemSettings.passcode) {
-        sessionStorage.setItem('manureco_logged_in', 'true');
-        bypassLogin();
-        showToast("認証に成功しました");
-      } else {
-        removeClass('gate-error-msg', 'hidden');
-        if (passwordInput) passwordInput.classList.add('border-red-500');
-        setTimeout(() => {
-          addClass('gate-error-msg', 'hidden');
-          if (passwordInput) passwordInput.classList.remove('border-red-500');
-        }, 3000);
-      }
-    }
 
     function bypassLogin() {
       addClass('login-gate', 'opacity-0 pointer-events-none');
@@ -828,14 +866,8 @@
       }
     }
 
-    onEvent('gate-login-btn', 'click', tryLogin);
-    onEvent('gate-password-input', 'keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
-
-    // --- 設定（パスコード変更・フォルダ設定）モーダル ---
+    // --- 設定（保存先固定）モーダル ---
     onEvent('open-settings-btn', 'click', () => {
-      setVal('settings-passcode-input', systemSettings.passcode);
-      
-      // デフォルト保存先名の読み込み
       if (typeof getDirHandle === 'function') {
         getDirHandle().then(data => {
           if (data && data.name) {
@@ -845,22 +877,14 @@
           }
         }).catch(e => console.warn(e));
       }
-
       removeClass('settings-modal', 'hidden');
     });
-    
     onEvent('close-settings-btn', 'click', () => addClass('settings-modal', 'hidden'));
-    
     onEvent('save-settings-btn', 'click', () => {
-      const newPass = getVal('settings-passcode-input').trim();
-      if (!newPass) { alert("パスコードを空にすることはできません。"); return; }
-      systemSettings.passcode = newPass;
-      localStorage.setItem('manureco_settings', JSON.stringify(systemSettings));
       addClass('settings-modal', 'hidden');
-      showToast("🔐 システム設定を新しく保存しました。");
+      showToast("🔐 システム設定を保存しました。");
     });
 
-    // フォルダ選択処理
     onEvent('select-dir-btn', 'click', async () => {
       if (!('showDirectoryPicker' in window)) {
         alert("お使いのブラウザはフォルダの固定機能（File System Access API）をサポートしていません。ChromeまたはEdgeをご利用ください。");
@@ -878,24 +902,42 @@
       }
     });
 
-    // --- 📂 データベース(LocalStorage)状態管理 ---
-    let db = {
-      folders: [
-        { id: 'f-all', name: '📂 すべてのマニュアル' },
-        { id: 'f-1', name: '📁 IT・システム操作' },
-        { id: 'f-2', name: '📁 総務・基本手続き' }
-      ],
-      manuals: []
-    };
-
+    // --- 📂 データベース(Firestore / LocalStorage)状態管理 ---
     function loadDatabase() {
+      if (useFirebase && currentUser) {
+        const userDocRef = doc(dbFirestore, 'artifacts', appId, 'users', currentUser.uid, 'manureco_db', 'state');
+        onSnapshot(userDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            window.dbState = docSnap.data();
+          } else {
+            saveDatabase(); // 初期化
+          }
+          setText('library-count-badge', window.dbState.manuals.length);
+          renderLibrary();
+        }, (error) => console.error(error));
+      } else {
+        loadDatabaseFallback();
+      }
+    }
+
+    function saveDatabase() {
+      if (useFirebase && currentUser) {
+        const userDocRef = doc(dbFirestore, 'artifacts', appId, 'users', currentUser.uid, 'manureco_db', 'state');
+        setDoc(userDocRef, window.dbState).then(() => {
+          setText('library-count-badge', window.dbState.manuals.length);
+        }).catch(err => console.error(err));
+      } else {
+        saveDatabaseFallback();
+      }
+    }
+    window.saveDatabase = saveDatabase;
+
+    function loadDatabaseFallback() {
       const savedData = localStorage.getItem('manureco_pro_db2');
       if (savedData) {
-        try {
-          db = JSON.parse(savedData);
-        } catch(e) {}
+        try { window.dbState = JSON.parse(savedData); } catch(e) {}
       } else {
-        db.manuals = [
+        window.dbState.manuals = [
           {
             id: 'm-demo-1',
             title: '【サンプル】サーバー設定変更と環境リブート作業',
@@ -905,21 +947,19 @@
             videoUrl: '',
             timeline: [
               { id: '1', time: 0, title: 'マニュアル収録の開始', text: '操作の収録を開始しました。', type: 'system' },
-              { id: '2', time: 3, title: 'ユーザー管理画面を開く', text: 'サイドバーからユーザー管理画面を展開して、アクティブノードを確認します。', type: 'step' },
-              { id: '3', time: 7, title: '環境設定での注意点', text: 'システム環境設定を開きます。アドレス重複エラーに要注意。', type: 'important' },
-              { id: '4', time: 11, title: '設定の保存', text: '保存ボタンを押すとポップアップが出現します。', type: 'step' },
-              { id: '5', time: 15, title: 'リブートの実行', text: '警告は無視して続行を選択し、ネットワーク全体をリブート確定します。', type: 'important' }
+              { id: '2', time: 3, title: 'ユーザー管理画面を開く', text: 'サイドバーからユーザー管理画面を展開して、アクティブノードを確認します。', type: 'step' }
             ]
           }
         ];
-        saveDatabase();
+        saveDatabaseFallback();
       }
-      setText('library-count-badge', db.manuals.length);
+      setText('library-count-badge', window.dbState.manuals.length);
+      renderLibrary();
     }
 
-    function saveDatabase() {
-      localStorage.setItem('manureco_pro_db2', JSON.stringify(db));
-      setText('library-count-badge', db.manuals.length);
+    function saveDatabaseFallback() {
+      localStorage.setItem('manureco_pro_db2', JSON.stringify(window.dbState));
+      setText('library-count-badge', window.dbState.manuals.length);
     }
 
     // --- 各種状態フラグ ---
@@ -935,7 +975,7 @@
     let isDemoMode = false;
     let startTime = null;
     let timerInterval = null;
-    let activeTag = 'step'; // 🚨 デフォルトを「手順ステップ」に変更
+    let activeTag = 'step'; 
     let currentSelectedFolderId = 'f-all';
     
     let currentVideoFileInfo = {
@@ -948,7 +988,6 @@
     let demoInterval = null;
     let currentTimelineData = [];
     let activeEditingManualId = null;
-    
     let activeVideoBlob = null;
 
     // --- ドラッグ&ドロップ & インポート処理 ---
@@ -1021,7 +1060,6 @@
       setText('status-text', "動画インポート完了");
       setText('audio-status', "動画を再生・確認しながら時間連動の解説マニュアルを作成できます");
 
-      // UI状態の更新 (タイトルとメモ入力の活性化)
       const memoTitleIn = getEl('memo-title-input');
       const memoIn = getEl('memo-input');
       if (memoTitleIn) {
@@ -1362,7 +1400,7 @@
     const tagButtons = document.querySelectorAll('.tag-btn');
     const saveLibraryBanner = document.getElementById('save-library-banner');
 
-    // --- 🚨 手順書レベルアップ：タイムライン制御コア ---
+    // --- タイムライン制御コア ---
     function addTimelineItem(time, title, text, type) {
       currentTimelineData.push({ id: Date.now() + Math.random().toString(36).substr(2,5), time, title, text, type });
       currentTimelineData.sort((a,b) => a.time - b.time);
@@ -1433,7 +1471,7 @@
           });
         });
         
-        // 🚨 インプレース直接編集 (タイトル＆詳細)
+        // インプレース直接編集 (タイトル＆詳細)
         tc.querySelectorAll('.edit-title-node').forEach(inp => {
           inp.addEventListener('blur', () => {
             const id = inp.getAttribute('data-id');
@@ -1491,18 +1529,17 @@
         btn.addEventListener('click', () => {
           tagButtons.forEach(b => b.className = "tag-btn text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600");
           activeTag = btn.getAttribute('data-tag');
-          btn.className = `tag-btn text-[10px] px-2.5 py-0.5 rounded-full scale-105 font-bold ${activeTag==='step'?'bg-brand-100 text-brand-700':activeTag==='important'?'bg-amber-100 text-amber-700':'bg-slate-200 text-slate-800'}`;
+          btn.className = `tag-btn text-[10px] px-2.5 py-0.5 rounded-full scale-105 font-bold ${activeTag==='step'?'bg-brand-100 text-brand-700':activeTag==='important'?'bg-amber-100 text-amber-700':'bg-emerald-100 text-emerald-700'}`;
         });
       });
     }
 
     // --- 📦 ライブラリ保管＆フォルダ管理ロジック ---
     onEvent('open-save-modal-btn', 'click', () => {
-      // ワークスペース上の全体タイトルをモーダルに引き継ぐ
       const currentWorkspaceTitle = getVal('workspace-manual-title').trim();
       setVal('modal-manual-title', currentWorkspaceTitle || (isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書"));
       
-      setHtml('modal-manual-folder', db.folders.filter(f => f.id !== 'f-all').map(f => `<option value="${f.id}">${f.name}</option>`).join(''));
+      setHtml('modal-manual-folder', window.dbState.folders.filter(f => f.id !== 'f-all').map(f => `<option value="${f.id}">${f.name}</option>`).join(''));
       
       setVal('modal-video-name', currentVideoFileInfo.name || "アタッチ動画なし");
       setVal('modal-video-url', '');
@@ -1537,13 +1574,13 @@
       }
 
       if (activeEditingManualId !== null) {
-        const idx = db.manuals.findIndex(m => m.id === activeEditingManualId);
+        const idx = window.dbState.manuals.findIndex(m => m.id === activeEditingManualId);
         if (idx !== -1) {
-          db.manuals[idx] = newManual;
+          window.dbState.manuals[idx] = newManual;
         }
         showToast("✔️ 保管中のマニュアルを上書き更新しました！");
       } else {
-        db.manuals.push(newManual);
+        window.dbState.manuals.push(newManual);
         showToast("✔️ ライブラリに安全にマニュアルを新規保管しました！");
       }
 
@@ -1560,7 +1597,7 @@
     onEvent('add-folder-btn', 'click', () => {
       const name = prompt('新規作成するマニュアルフォルダ名を入力してください：');
       if (name) {
-        db.folders.push({ id: 'f-' + Date.now(), name: '📁 ' + name });
+        window.dbState.folders.push({ id: 'f-' + Date.now(), name: '📁 ' + name });
         saveDatabase();
         renderLibrary();
       }
@@ -1570,9 +1607,9 @@
     function renderLibrary() {
       const flc = getEl('folder-list-container');
       if (flc) {
-        flc.innerHTML = db.folders.map(f => {
+        flc.innerHTML = window.dbState.folders.map(f => {
           const isSelected = f.id === currentSelectedFolderId;
-          const count = f.id === 'f-all' ? db.manuals.length : db.manuals.filter(m => m.folderId === f.id).length;
+          const count = f.id === 'f-all' ? window.dbState.manuals.length : window.dbState.manuals.filter(m => m.folderId === f.id).length;
           return `
             <div class="flex justify-between items-center group p-2 rounded-lg cursor-pointer font-semibold transition-all ${isSelected ? 'bg-brand-50 text-brand-700 font-bold' : 'hover:bg-slate-100 text-slate-600'}" onclick="selectFolder('${f.id}')">
               <span class="truncate">${f.name}</span>
@@ -1582,8 +1619,8 @@
         }).join('');
       }
 
-      const filteredManuals = currentSelectedFolderId === 'f-all' ? db.manuals : db.manuals.filter(m => m.folderId === currentSelectedFolderId);
-      const fObj = db.folders.find(f => f.id === currentSelectedFolderId);
+      const filteredManuals = currentSelectedFolderId === 'f-all' ? window.dbState.manuals : window.dbState.manuals.filter(m => m.folderId === currentSelectedFolderId);
+      const fObj = window.dbState.folders.find(f => f.id === currentSelectedFolderId);
       setText('current-folder-title', fObj ? fObj.name : "一覧");
 
       if (filteredManuals.length === 0) {
@@ -1635,7 +1672,7 @@
     window.deleteManual = function(id, e) {
       if (e) e.stopPropagation();
       if(confirm('このマニュアル保管データをライブラリから完全に削除しますか？')) {
-        db.manuals = db.manuals.filter(m => m.id !== id);
+        window.dbState.manuals = window.dbState.manuals.filter(m => m.id !== id);
         saveDatabase();
         deleteVideoBlob(id)
           .then(() => console.log("IndexedDBから動画Blobを削除しました。"))
@@ -1646,7 +1683,7 @@
 
     // 🔄 ワークスペースにマニュアルをロードする（IndexedDBからの動画自動復元アタッチ機能連動）
     window.loadManualToWorkspace = function(id) {
-      const m = db.manuals.find(manual => manual.id === id);
+      const m = window.dbState.manuals.find(manual => manual.id === id);
       if (!m) return;
 
       activeEditingManualId = m.id;
@@ -1654,7 +1691,7 @@
       
       resetToInitial();
       
-      // 🚨 ワークスペースのタイトルにマニュアル名を復元
+      // ワークスペースのタイトルにマニュアル名を復元
       setVal('workspace-manual-title', m.title);
       
       renderTimeline();
@@ -1732,20 +1769,20 @@
       });
 
       removeClass('save-library-banner', 'hidden');
-      toggleTabs(true);
+      toggleTabs(true); // バグ修正: ワークスペースへ正常に戻る
     };
 
     // Notion連携埋め込み用ポップアップ呼び出し
     window.openNotionShare = function(id, e) {
       if (e) e.stopPropagation();
-      const m = db.manuals.find(manual => manual.id === id);
+      const m = window.dbState.manuals.find(manual => manual.id === id);
       if (!m) return;
 
       const baseAppUrl = window.location.origin + window.location.pathname;
       const simulatedShareUrl = `${baseAppUrl}?id=${m.id}&p=${systemSettings.passcode}`;
       setVal('share-url-input', simulatedShareUrl);
 
-      // 🚨 Notionコピペトグルテキストの生成 (タイトル見出し対応)
+      // Notionコピペトグルテキストの生成
       let notionMd = `### 📄 ${m.title}\n`;
       notionMd += `*作成日: ${m.createdAt}*\n\n`;
       notionMd += `> 💡 **ManuReco タイムスタンプガイド:** 各項目に付与されたタイムスタンプ（例 \`[01:12]\`）は、動画マニュアルの再生時間を指しています。\n\n`;
@@ -1762,7 +1799,6 @@
           stepCounter++;
         }
 
-        // 見出し（タイトル）がある場合はMarkdownの太字で挿入
         if (t.title) {
           notionMd += `>> ⏱️ **[${formatTime(t.time)}]** - ${emoji} **${t.title}**\n`;
         } else {
@@ -1822,7 +1858,7 @@
 
     // 詳細プレビュー
     window.openManualPreview = function(id) {
-      const m = db.manuals.find(manual => manual.id === id);
+      const m = window.dbState.manuals.find(manual => manual.id === id);
       if (!m) return;
       setText('preview-modal-title', m.title);
       
@@ -1922,22 +1958,15 @@
       addClass('recording-overlay', 'opacity-0');
     }
 
-    // 要素オブジェクトのプロパティ設定ヘルパー
-    function setProp(id, propName, value) {
-      const el = getEl(id);
-      if (el) el[propName] = value;
-    }
-
-    // セッション認証＆初期ロード実行
-    checkLoginSession();
-    loadDatabase();
-    
-    // IndexedDBの非同期初期化
+    // --- セッション認証＆初期ロードの実行 ---
     initIndexedDB().then(() => {
       console.log("IndexedDB 動画保管システムが正常にマウントされました。");
     }).catch(err => {
-      console.warn("IndexedDBの初期化に失敗しました。アタッチ不要動画再生は利用できません:", err);
+      console.warn("IndexedDBの初期化に失敗しました:", err);
     });
+
+    // 最初に初期化
+    checkLoginSession();
   </script>
 </body>
 </html>
