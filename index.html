@@ -213,14 +213,14 @@
             </div>
           </div>
 
-          <!-- ワークスペース用操作ボタン (🚨修正: マイクテスト機能追加) -->
+          <!-- ワークスペース用操作ボタン (🚨修正: 状態に応じてボタンの見た目とテキストを動的に変更) -->
           <div class="grid grid-cols-4 gap-2">
-            <button id="start-btn" class="p-2.5 bg-slate-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 col-span-2 shadow-sm transition-transform active:scale-95">🔴 画面・音声 収録開始</button>
-            <button id="stop-btn" disabled class="p-2.5 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed">⏹️ 停止</button>
+            <button id="start-btn" class="p-2.5 bg-brand-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 col-span-2 shadow-sm transition-all active:scale-95">🔴 画面・音声 収録開始</button>
+            <button id="stop-btn" disabled class="p-2.5 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-not-allowed transition-all">⏹️ 停止</button>
             <button id="mic-test-btn" class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all">🎙️ マイクテスト</button>
           </div>
           
-          <!-- 🚨追加: マイクテストレベルメーター -->
+          <!-- マイクテストレベルメーター -->
           <div id="mic-level-container" class="mt-1 hidden bg-white p-3 rounded-xl border border-slate-200 flex items-center gap-3 shadow-sm transition-all">
              <div class="flex flex-col items-center w-12">
                <span class="text-xl" id="mic-icon">🎤</span>
@@ -694,11 +694,6 @@
       const vp = getEl('video-preview'); return vp ? !!(vp.src || vp.srcObject) : false;
     }
 
-    // --- 🔐 整理されたシステム設定変数 ---
-    window.systemSettings = window.systemSettings || {
-      passcode: '1234'
-    };
-
     // --- 🔐 セキュリティ・Googleログイン・Firebase連携管理 ---
     let useFirebase = false;
     let auth, dbFirestore, appId;
@@ -939,7 +934,7 @@
     }
     window.saveCapturedVideoDirectly = saveCapturedVideoDirectly;
 
-    // --- タイムライン制御コア ---
+    // --- 🚨 修正: タイムライン制御コア (時間を直接編集できるように改良) ---
     function addTimelineItem(time, title, text, type) {
       currentTimelineData.push({ id: Date.now() + Math.random().toString(36).substr(2,5), time, title, text, type });
       currentTimelineData.sort((a,b) => a.time - b.time);
@@ -968,11 +963,15 @@
         else if (item.type === 'step') { iconHtml = `<span class="text-brand-600">⚙️ ステップ ${stepCount}</span>`; stepCount++; }
         else iconHtml = '📝 メモ';
 
+        // 🚨 修正: 時間（バッジ）部分を「ジャンプボタン」と「直接編集可能なインプット」に分割
         row.innerHTML = `
           <div class="absolute -left-[5.5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 group-hover:bg-brand-400 transition-colors"></div>
           <div class="flex-1 flex flex-col gap-1.5">
             <div class="flex items-center gap-2">
-              <span class="bg-brand-50 text-brand-700 font-mono text-[10px] px-1.5 py-0.5 rounded font-bold cursor-pointer stamp-jump hover:bg-brand-100 transition-colors shadow-sm" data-time="${item.time}">⏱️ ${formatTime(item.time)}</span>
+              <div class="flex items-center bg-brand-50 border border-brand-200 rounded px-1 shadow-sm hover:shadow transition-shadow">
+                <button class="stamp-jump hover:bg-brand-200 p-0.5 rounded cursor-pointer transition-colors" data-time="${item.time}" title="この時間にジャンプ">⏱️</button>
+                <input type="text" class="w-10 bg-transparent font-mono text-[10px] text-brand-700 font-bold focus:outline-none focus:border-b border-brand-500 text-center edit-time-node" data-id="${item.id}" value="${formatTime(item.time)}" title="クリックして時間を編集">
+              </div>
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">${iconHtml}</span>
             </div>
             <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm group-hover:shadow-md transition-shadow">
@@ -985,6 +984,7 @@
       });
 
       if (tc) {
+        // ジャンプ
         tc.querySelectorAll('.stamp-jump').forEach(btn => {
           btn.addEventListener('click', () => {
             const t = parseFloat(btn.getAttribute('data-time'));
@@ -993,6 +993,38 @@
           });
         });
         
+        // 🚨 修正: 時間の直接編集ハンドラ
+        tc.querySelectorAll('.edit-time-node').forEach(inp => {
+          const handleTimeEdit = () => {
+            const id = inp.getAttribute('data-id');
+            const item = currentTimelineData.find(i => i.id === id);
+            if (item) {
+              const val = inp.value.trim();
+              const parts = val.split(':');
+              let newTime = item.time;
+              if (parts.length === 2) {
+                const m = parseInt(parts[0], 10);
+                const s = parseInt(parts[1], 10);
+                if (!isNaN(m) && !isNaN(s)) newTime = m * 60 + s;
+              } else if (parts.length === 1) {
+                 const s = parseInt(parts[0], 10);
+                 if (!isNaN(s)) newTime = s;
+              }
+              
+              if (newTime !== item.time) {
+                item.time = newTime;
+                currentTimelineData.sort((a,b) => a.time - b.time);
+                renderTimeline(); // 再描画して正しい位置に並べ替え
+              } else {
+                inp.value = formatTime(item.time); // 元に戻す
+              }
+            }
+          };
+          inp.addEventListener('blur', handleTimeEdit);
+          inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTimeEdit(); });
+        });
+
+        // タイトルとテキストの編集
         tc.querySelectorAll('.edit-title-node').forEach(inp => {
           inp.addEventListener('blur', () => {
             const id = inp.getAttribute('data-id');
@@ -1011,6 +1043,7 @@
         tc.scrollTop = tc.scrollHeight;
       }
     }
+    window.renderTimeline = renderTimeline;
 
     function sendMemo() {
       const titleVal = getVal('memo-title-input').trim();
@@ -1220,11 +1253,25 @@
       removeClass('preview-modal', 'hidden');
     };
 
+    // 🚨 修正: 録画状態に応じたボタンの動的なテキスト変更
     function updateUIState(rec) {
       const sBtn = getEl('start-btn');
-      if (sBtn) { sBtn.disabled = rec; sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm ${rec?'bg-slate-300 text-slate-400 cursor-not-allowed':'bg-brand-600 text-white'}`; }
+      if (sBtn) { 
+        sBtn.disabled = rec;
+        if (rec) {
+          sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm bg-red-100 text-red-600 border border-red-300 animate-pulse`;
+          sBtn.innerHTML = `🔴 録画中...`;
+        } else {
+          sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm bg-brand-600 hover:bg-brand-700 text-white transition-colors active:scale-95`;
+          if (activeVideoBlob || currentVideoFileInfo.url) {
+            sBtn.innerHTML = `🔄 再収録する (上書き)`;
+          } else {
+            sBtn.innerHTML = `🔴 画面・音声 収録開始`;
+          }
+        }
+      }
       const stBtn = getEl('stop-btn');
-      if (stBtn) { stBtn.disabled = !rec; stBtn.className = `p-2.5 rounded-xl text-xs font-bold ${rec?'bg-red-600 text-white':'bg-white border border-slate-200 text-slate-400 cursor-not-allowed'}`; }
+      if (stBtn) { stBtn.disabled = !rec; stBtn.className = `p-2.5 rounded-xl text-xs font-bold ${rec?'bg-red-600 hover:bg-red-700 text-white active:scale-95':'bg-white border border-slate-200 text-slate-400 cursor-not-allowed'} transition-all`; }
       const memoTitleIn = getEl('memo-title-input'); const memoIn = getEl('memo-input');
       if (memoTitleIn) { memoTitleIn.disabled = false; memoTitleIn.classList.remove('bg-slate-100','cursor-not-allowed'); memoTitleIn.classList.add('bg-white'); }
       if (memoIn) { memoIn.disabled = false; memoIn.classList.remove('bg-slate-100','cursor-not-allowed'); memoIn.classList.add('bg-white', 'text-slate-900'); memoIn.placeholder = "詳細な手順やコツを入力..."; }
@@ -1245,6 +1292,14 @@
       if (memoIn) { memoIn.disabled = true; memoIn.classList.add('bg-slate-100','cursor-not-allowed'); memoIn.classList.remove('bg-white', 'text-slate-900'); memoIn.placeholder = "動画を設定すると入力できます..."; }
       setProp('add-memo-btn', 'disabled', true);
       setVal('workspace-manual-title', ''); 
+      
+      const sBtn = getEl('start-btn');
+      if (sBtn) {
+        sBtn.disabled = false;
+        sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm bg-brand-600 hover:bg-brand-700 text-white transition-colors active:scale-95`;
+        sBtn.innerHTML = `🔴 画面・音声 収録開始`;
+      }
+      
       addClass('video-preview', 'hidden'); removeClass('video-placeholder', 'hidden');
       addClass('video-attach-prompt', 'hidden'); addClass('save-video-action-area', 'hidden');
       addClass('recording-overlay', 'opacity-0');
@@ -1405,7 +1460,6 @@
         addClass('save-video-action-area', 'hidden'); 
       });
 
-      // 🚨 修正: 画面録画時にマイクの音をミックスする処理を追加
       onEvent('start-btn', 'click', async () => {
         try {
           recordedChunks = []; isImportMode = false; isDemoMode = false;
