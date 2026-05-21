@@ -108,7 +108,7 @@
       <button onclick="document.getElementById('sandbox-banner').remove()" class="text-amber-500 hover:text-amber-800 font-bold px-2 text-sm">&times;</button>
     </div>
 
-    <!-- メインレイアウトコンテナ -->
+    <!-- メメインレイアウトコンテナ -->
     <div class="flex-1 max-w-7xl w-full mx-auto flex flex-col lg:flex-row gap-6 p-4 md:p-6">
       
       <!-- ========================================== -->
@@ -315,8 +315,9 @@
           <input type="text" id="modal-video-name" readonly class="w-full border bg-slate-50 text-slate-400 rounded-xl p-2.5" placeholder="動画がありません">
         </div>
         <div>
-          <label class="block font-bold text-slate-700 mb-1">または、外部公開動画URL of 登録 (任意)</label>
-          <input type="url" id="modal-video-url" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="https://youtube.com/... or Notion動画直リンク">
+          <label class="block font-bold text-slate-700 mb-1">Googleドライブ共有URL または ローカル保存先パス (推奨)</label>
+          <input type="text" id="modal-video-url" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="例: G:\マイドライブ\Manuals\video.webm">
+          <p class="text-[10px] text-slate-400 mt-1">※同期フォルダ（Gドライブ等）のパス、または公開共有リンクを貼るとアタッチ不要で自動再生できます。</p>
         </div>
       </div>
       <div class="flex justify-end gap-2 text-xs font-semibold mt-2">
@@ -450,6 +451,79 @@
       return document.getElementById(id);
     }
 
+    // 🚨 修正：再追加された安全なDOM操作ユーティリティ
+    function addClass(id, className) {
+      const el = getEl(id);
+      if (el && className) {
+        className.split(' ').forEach(c => {
+          if (c.trim()) el.classList.add(c.trim());
+        });
+      }
+    }
+    window.addClass = addClass;
+    
+    function removeClass(id, className) {
+      const el = getEl(id);
+      if (el && className) {
+        className.split(' ').forEach(c => {
+          if (c.trim()) el.classList.remove(c.trim());
+        });
+      }
+    }
+    window.removeClass = removeClass;
+    
+    function toggleClass(id, className, force) {
+      const el = getEl(id);
+      if (el && className) {
+        el.classList.toggle(className, force);
+      }
+    }
+    window.toggleClass = toggleClass;
+    
+    function hasClass(id, className) {
+      const el = getEl(id);
+      return el ? el.classList.contains(className) : false;
+    }
+    window.hasClass = hasClass;
+    
+    function onEvent(id, eventName, handler) {
+      const el = getEl(id);
+      if (el) {
+        el.addEventListener(eventName, handler);
+      }
+    }
+    window.onEvent = onEvent;
+    
+    function setHtml(id, html) {
+      const el = getEl(id);
+      if (el) el.innerHTML = html;
+    }
+    window.setHtml = setHtml;
+    
+    function setText(id, text) {
+      const el = getEl(id);
+      if (el) el.textContent = text;
+    }
+    window.setText = setText;
+    
+    function setVal(id, value) {
+      const el = getEl(id);
+      if (el) el.value = value;
+    }
+    window.setVal = setVal;
+    
+    function getVal(id) {
+      const el = getEl(id);
+      return el ? el.value : "";
+    }
+    window.getVal = getVal;
+
+    function setProp(id, propName, value) {
+      const el = getEl(id);
+      if (el) el[propName] = value;
+    }
+    window.setProp = setProp;
+
     // 時間のフォーマット用ヘルパー関数
     function formatTime(seconds) {
       if (seconds === null || seconds === undefined || isNaN(seconds)) return "00:00";
@@ -547,63 +621,80 @@
       }, 3000);
     }
     window.showToast = showToast; // 明示的にグローバルスコープへ展開
-    
-    function addClass(id, className) {
-      const el = getEl(id);
-      if (el && className) {
-        className.split(' ').forEach(c => {
-          if (c.trim()) el.classList.add(c.trim());
-        });
-      }
+
+
+    // --- 📦 IndexedDB 動画ストレージ管理 (ローカル永続動画再生用) ---
+    const DB_NAME = 'manureco_videos_db';
+    const STORE_NAME = 'videos';
+    let indexedDbInstance = null;
+
+    function initIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = (e) => {
+          const dbInstance = e.target.result;
+          if (!dbInstance.objectStoreNames.contains(STORE_NAME)) {
+            dbInstance.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = (e) => {
+          indexedDbInstance = e.target.result;
+          resolve(indexedDbInstance);
+        };
+        request.onerror = (e) => {
+          console.error("IndexedDBの初期化エラー:", e.target.error);
+          reject(e.target.error);
+        };
+      });
     }
-    
-    function removeClass(id, className) {
-      const el = getEl(id);
-      if (el && className) {
-        className.split(' ').forEach(c => {
-          if (c.trim()) el.classList.remove(c.trim());
-        });
-      }
+
+    // 動画Blobの保存
+    function saveVideoBlob(id, blob) {
+      return new Promise((resolve, reject) => {
+        if (!indexedDbInstance) {
+          reject("IndexedDBが初期化されていません");
+          return;
+        }
+        const transaction = indexedDbInstance.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put({ id: id, blob: blob });
+        request.onsuccess = () => resolve(true);
+        request.onerror = (e) => reject(e.target.error);
+      });
     }
-    
-    function toggleClass(id, className, force) {
-      const el = getEl(id);
-      if (el && className) {
-        el.classList.toggle(className, force);
-      }
+
+    // 動画Blobの取得
+    function getVideoBlob(id) {
+      return new Promise((resolve, reject) => {
+        if (!indexedDbInstance) {
+          resolve(null);
+          return;
+        }
+        const transaction = indexedDbInstance.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(id);
+        request.onsuccess = (e) => {
+          resolve(e.target.result ? e.target.result.blob : null);
+        };
+        request.onerror = (e) => reject(e.target.error);
+      });
     }
-    
-    function hasClass(id, className) {
-      const el = getEl(id);
-      return el ? el.classList.contains(className) : false;
+
+    // 動画Blobの削除
+    function deleteVideoBlob(id) {
+      return new Promise((resolve, reject) => {
+        if (!indexedDbInstance) {
+          resolve(false);
+          return;
+        }
+        const transaction = indexedDbInstance.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.delete(id);
+        request.onsuccess = () => resolve(true);
+        request.onerror = (e) => reject(e.target.error);
+      });
     }
-    
-    function onEvent(id, eventName, handler) {
-      const el = getEl(id);
-      if (el) {
-        el.addEventListener(eventName, handler);
-      }
-    }
-    
-    function setHtml(id, html) {
-      const el = getEl(id);
-      if (el) el.innerHTML = html;
-    }
-    
-    function setText(id, text) {
-      const el = getEl(id);
-      if (el) el.textContent = text;
-    }
-    
-    function setVal(id, value) {
-      const el = getEl(id);
-      if (el) el.value = value;
-    }
-    
-    function getVal(id) {
-      const el = getEl(id);
-      return el ? el.value : "";
-    }
+
 
     // ビデオ要素の安全制御
     function playVideo() {
@@ -644,7 +735,6 @@
       }
     }
 
-    // 🚨 修正：消失していた checkLoginSession 関数の再定義
     function checkLoginSession() {
       loadSystemSettings();
       const urlParams = new URLSearchParams(window.location.search);
@@ -776,6 +866,9 @@
     let demoInterval = null;
     let currentTimelineData = [];
     let activeEditingManualId = null;
+    
+    // 巨大な動画Blobオブジェクトを一時的にメモリ保持する変数
+    let activeVideoBlob = null;
 
     // --- ドラッグ&ドロップ & インポート処理 ---
     onEvent('import-trigger-btn', 'click', () => {
@@ -819,6 +912,7 @@
     function handleVideoFileImport(file) {
       isImportMode = true; isRecording = false; isDemoMode = false; stopTimer();
       
+      activeVideoBlob = file; // 後ほどIndexedDBに格納するためにBlobを一時保持
       currentVideoFileInfo.name = file.name;
       currentVideoFileInfo.size = file.size;
       currentVideoFileInfo.url = URL.createObjectURL(file);
@@ -883,6 +977,7 @@
     });
 
     function handleVideoFileAttach(file) {
+      activeVideoBlob = file; // アタッチ時も同様にメモリ保持
       currentVideoFileInfo.name = file.name;
       currentVideoFileInfo.size = file.size;
       currentVideoFileInfo.url = URL.createObjectURL(file);
@@ -1191,6 +1286,13 @@
         timeline: [...currentTimelineData]
       };
 
+      // 🚨 IndexedDBへ動画Blobデータの永続保管処理を実行
+      if (activeVideoBlob) {
+        saveVideoBlob(newManual.id, activeVideoBlob)
+          .then(() => console.log("IndexedDBに動画Blobを永続保存しました。"))
+          .catch(err => console.error("IndexedDBへの動画保存に失敗しました:", err));
+      }
+
       if (activeEditingManualId !== null) {
         const idx = db.manuals.findIndex(m => m.id === activeEditingManualId);
         if (idx !== -1) {
@@ -1205,6 +1307,7 @@
       saveDatabase();
       addClass('save-modal', 'hidden');
       activeEditingManualId = null;
+      activeVideoBlob = null; // メモリクリア
       
       toggleTabs(false);
       renderLibrary();
@@ -1291,11 +1394,14 @@
       if(confirm('このマニュアル保管データをライブラリから完全に削除しますか？')) {
         db.manuals = db.manuals.filter(m => m.id !== id);
         saveDatabase();
+        deleteVideoBlob(id)
+          .then(() => console.log("IndexedDBから動画Blobを削除しました。"))
+          .catch(err => console.error("IndexedDBからの動画削除エラー:", err));
         renderLibrary();
       }
     };
 
-    // 🔄 ワークスペースにマニュアルをロードする（アタッチ機能連動）
+    // 🔄 ワークスペースにマニュアルをロードする（IndexedDBからの動画自動復元アタッチ機能連動）
     window.loadManualToWorkspace = function(id) {
       const m = db.manuals.find(manual => manual.id === id);
       if (!m) return;
@@ -1306,42 +1412,78 @@
       resetToInitial();
       renderTimeline();
 
-      if (m.videoUrl) {
-        isImportMode = true;
-        const vp = getEl('video-preview');
-        if (vp) {
-          vp.srcObject = null;
-          vp.src = m.videoUrl;
-          vp.muted = false;
-          vp.controls = true;
+      // 🚨 IndexedDBから動画Blobデータの自動復元を非同期実行
+      getVideoBlob(m.id).then(storedBlob => {
+        if (storedBlob) {
+          isImportMode = true;
+          activeVideoBlob = storedBlob;
+          const objectUrl = URL.createObjectURL(storedBlob);
+          currentVideoFileInfo.name = m.videoName || "saved_video.mp4";
+          currentVideoFileInfo.url = objectUrl;
+
+          const vp = getEl('video-preview');
+          if (vp) {
+            vp.srcObject = null;
+            vp.src = objectUrl;
+            vp.muted = false;
+            vp.controls = true;
+          }
+          removeClass('video-preview', 'hidden');
+          addClass('video-placeholder', 'hidden');
+          addClass('video-attach-prompt', 'hidden');
+          
+          setText('timer-label', "PlaybackTime");
+          if (vp) {
+            vp.ontimeupdate = () => {
+              setText('timer-display', formatTime(vp.currentTime));
+            };
+          }
+          updateUIState(false);
+          showToast("💾 保管動画を自動ロードして再生を開始しました！");
+        } else if (m.videoUrl) {
+          isImportMode = true;
+          const vp = getEl('video-preview');
+          if (vp) {
+            vp.srcObject = null;
+            vp.src = m.videoUrl;
+            vp.muted = false;
+            vp.controls = true;
+          }
+          removeClass('video-preview', 'hidden');
+          addClass('video-placeholder', 'hidden');
+          addClass('video-attach-prompt', 'hidden');
+          
+          setText('timer-label', "PlaybackTime");
+          if (vp) {
+            vp.ontimeupdate = () => {
+              setText('timer-display', formatTime(vp.currentTime));
+            };
+          }
+          updateUIState(false);
+          showToast("🔗 外部動画URLからメディアを読み込みました");
+        } else if (m.videoName) {
+          addClass('video-preview', 'hidden');
+          addClass('video-placeholder', 'hidden');
+          
+          setText('attach-file-name', m.videoName);
+          removeClass('video-attach-prompt', 'hidden');
+          
+          updateUIState(false);
+          showToast("📼 動画ファイル『" + m.videoName + "』のアタッチが必要です");
+        } else {
+          addClass('video-preview', 'hidden');
+          removeClass('video-placeholder', 'hidden');
+          addClass('video-attach-prompt', 'hidden');
+          updateUIState(false);
         }
-        removeClass('video-preview', 'hidden');
-        addClass('video-placeholder', 'hidden');
-        addClass('video-attach-prompt', 'hidden');
-        
-        setText('timer-label', "PlaybackTime");
-        if (vp) {
-          vp.ontimeupdate = () => {
-            setText('timer-display', formatTime(vp.currentTime));
-          };
-        }
-        updateUIState(false);
-        showToast("🔗 外部動画URLからメディアを読み込みました");
-      } else if (m.videoName) {
-        addClass('video-preview', 'hidden');
-        addClass('video-placeholder', 'hidden');
-        
-        setText('attach-file-name', m.videoName);
-        removeClass('video-attach-prompt', 'hidden');
-        
-        updateUIState(false);
-        showToast("📼 動画ファイル『" + m.videoName + "』のアタッチが必要です");
-      } else {
+      }).catch(err => {
+        console.error("IndexedDBロードに失敗、フォールバックアタッチを起動します:", err);
+        // 万が一エラーが出た場合はアタッチ/URLルートへ
         addClass('video-preview', 'hidden');
         removeClass('video-placeholder', 'hidden');
         addClass('video-attach-prompt', 'hidden');
         updateUIState(false);
-      }
+      });
 
       removeClass('save-library-banner', 'hidden');
       toggleTabs(true);
@@ -1507,9 +1649,69 @@
       if (el) el[propName] = value;
     }
 
+    // 🚨 画面録画データをGoogleドライブ等のローカル同期フォルダに「名前を直接指定して保存」する新処理
+    async function saveCapturedVideoDirectly(blob) {
+      // ブラウザがFile System Access APIをサポートしているか確認
+      if ('showSaveFilePicker' in window) {
+        try {
+          const options = {
+            suggestedName: `Manual_Video_${getFormattedDate()}.webm`,
+            types: [{
+              description: 'Video File',
+              accept: { 'video/webm': ['.webm'] }
+            }]
+          };
+          // フォルダ選択＆ファイル命名用のOS標準セーブダイアログを開く
+          const fileHandle = await window.showSaveFilePicker(options);
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          
+          showToast("📁 同期フォルダ（Googleドライブ等）に直接動画を書き出しました！");
+          return fileHandle.name;
+        } catch (err) {
+          // ユーザーによるキャンセル、または書き込みエラー時
+          if (err.name !== 'AbortError') {
+            console.warn("直接保存エラー。通常ダウンロードに切り替えます:", err);
+          }
+        }
+      }
+      
+      // 非対応ブラウザ、またはキャンセル時のフォールバック（通常のBlobダウンロード）
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Manual_Video_${getFormattedDate()}.webm`;
+      a.click();
+      showToast("📥 通常ダウンロードを開始しました（動画ファイルをドライブに移動させてください）");
+      return a.download;
+    }
+
+    // 保存ボタンイベントのアップグレード
+    const dlVidBtn = getEl('download-video-btn');
+    if (dlVidBtn) {
+      dlVidBtn.onclick = async () => {
+        if (recordedChunks.length === 0) {
+          showToast("保存する録画データがありません。");
+          return;
+        }
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const savedName = await saveCapturedVideoDirectly(blob);
+        // 保存したファイル名を設定モーダル用インプットに連動
+        setVal('modal-video-name', savedName);
+      };
+    }
+
     // セッション認証＆初期ロード実行
     checkLoginSession();
     loadDatabase();
+    
+    // IndexedDBの非同期初期化
+    initIndexedDB().then(() => {
+      console.log("IndexedDB 動画保管システムが正常にマウントされました。");
+    }).catch(err => {
+      console.warn("IndexedDBの初期化に失敗しました。アタッチ不要動画再生は利用できません:", err);
+    });
   </script>
 </body>
 </html>
