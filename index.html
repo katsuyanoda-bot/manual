@@ -89,8 +89,12 @@
           </div>
         </div>
         
-        <!-- ナビゲーションタブ＆パスコード設定 -->
+        <!-- ナビゲーションタブ＆設定 -->
         <div class="flex items-center gap-3">
+          <!-- 🚨 追加: 新規作成ボタン -->
+          <button id="new-manual-btn" class="px-4 py-1.5 bg-brand-600 text-white rounded-xl text-xs font-bold hover:bg-brand-700 transition-all flex items-center gap-1.5 shadow-sm mr-2">
+            ✨ 新規作成
+          </button>
           <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button id="nav-workspace-btn" onclick="window.switchView('workspace')" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-sm transition-all flex items-center gap-1.5">
               📝 ワークスペース
@@ -380,7 +384,7 @@
     </div>
   </div>
 
-  <!-- 2. 🚨 修正: 時間を抜いた手順書出力モーダル -->
+  <!-- 2. 時間を抜いた手順書出力モーダル -->
   <div id="share-modal" class="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -1398,7 +1402,25 @@
 
       activeEditingManualId = m.id;
       currentTimelineData = [...m.timeline];
-      resetToInitial();
+      
+      // 🚨 修正: ワークスペースにマニュアルをロードする前に、状態を完全にリセット
+      const sBtn = getEl('start-btn');
+      if (sBtn) { 
+        sBtn.disabled = true;
+        sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm bg-slate-100 text-slate-400 cursor-not-allowed transition-all`;
+        sBtn.innerHTML = `✅ 収録完了`;
+      }
+      isRecording = false; isImportMode = false; isDemoMode = false; stopTimer();
+      setText('timer-display', "00:00"); setText('timer-label', "ElapsedTime");
+      const si = getEl('status-indicator'); if (si) si.className = "w-3.5 h-3.5 rounded-full bg-slate-300";
+      setText('status-text', "準備完了");
+      const memoTitleIn = getEl('memo-title-input'); const memoIn = getEl('memo-input');
+      if (memoTitleIn) { memoTitleIn.disabled = false; memoTitleIn.classList.remove('bg-slate-100','cursor-not-allowed'); memoTitleIn.classList.add('bg-white'); }
+      if (memoIn) { memoIn.disabled = false; memoIn.classList.remove('bg-slate-100','cursor-not-allowed'); memoIn.classList.add('bg-white', 'text-slate-900'); memoIn.placeholder = "詳細な手順やコツを入力..."; }
+      setProp('add-memo-btn', 'disabled', false);
+      addClass('video-attach-prompt', 'hidden'); addClass('save-video-action-area', 'hidden');
+      addClass('recording-overlay', 'opacity-0');
+      
       setVal('workspace-manual-title', m.title);
       renderTimeline();
 
@@ -1466,7 +1488,6 @@
       toggleTabs(true); 
     };
 
-    // 🚨 変更: 時間なしで出力するテキスト出力機能
     window.openTextExport = function(id, e) {
       if (e) e.stopPropagation();
       const m = window.dbState.manuals.find(manual => manual.id === id) || teamManuals.find(manual => manual.id === id);
@@ -1512,6 +1533,7 @@
       removeClass('preview-modal', 'hidden');
     };
 
+    // 🚨 修正: 録画状態に応じたボタンの動的なテキスト変更（再収録を廃止）
     function updateUIState(rec) {
       const sBtn = getEl('start-btn');
       if (sBtn) { 
@@ -1520,10 +1542,13 @@
           sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm bg-red-100 text-red-600 border border-red-300 animate-pulse`;
           sBtn.innerHTML = `🔴 録画中...`;
         } else {
-          sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm bg-brand-600 hover:bg-brand-700 text-white transition-colors active:scale-95`;
           if (activeVideoBlob || currentVideoFileInfo.url) {
-            sBtn.innerHTML = `🔄 再収録する (上書き)`;
+            sBtn.disabled = true;
+            sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm bg-slate-100 text-slate-400 cursor-not-allowed transition-all`;
+            sBtn.innerHTML = `✅ 収録完了`;
           } else {
+            sBtn.disabled = false;
+            sBtn.className = `p-2.5 rounded-xl text-xs font-bold col-span-2 shadow-sm bg-brand-600 hover:bg-brand-700 text-white transition-colors active:scale-95`;
             sBtn.innerHTML = `🔴 画面・音声 収録開始`;
           }
         }
@@ -1561,6 +1586,7 @@
       addClass('video-preview', 'hidden'); removeClass('video-placeholder', 'hidden');
       addClass('video-attach-prompt', 'hidden'); addClass('save-video-action-area', 'hidden');
       addClass('recording-overlay', 'opacity-0');
+      addClass('save-library-banner', 'hidden');
     }
 
     // ==========================================
@@ -1579,6 +1605,27 @@
         if (e.key === 'Enter' && e.shiftKey && isInput) {
           e.preventDefault(); e.target.blur(); window.createInlineStep();
         }
+      });
+
+      // 🚨 追加: 新規作成ボタンのイベントリスナー
+      onEvent('new-manual-btn', 'click', () => {
+        if(currentTimelineData.length > 0 || hasVideoSource()) {
+            if(!confirm('現在編集中の内容は破棄されます。新しく作成しますか？\n（保管していない場合は先に「ライブラリに保管」してください）')) return;
+        }
+        activeEditingManualId = null;
+        activeVideoBlob = null;
+        currentVideoFileInfo = { name: '', size: 0, url: '', savedPath: '' };
+        currentTimelineData = [];
+        
+        const vp = getEl('video-preview');
+        if (vp) {
+            vp.src = "";
+            vp.srcObject = null;
+        }
+        
+        resetToInitial();
+        renderTimeline();
+        window.switchView('workspace');
       });
 
       onEvent('mic-test-btn', 'click', window.toggleMicTest);
