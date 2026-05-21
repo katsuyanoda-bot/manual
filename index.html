@@ -220,7 +220,7 @@
             <button id="mic-toggle-btn" class="p-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5">🎙️ マイク ON</button>
           </div>
           
-          <!-- 手動保存アクションエリア（デフォルト設定がない場合のみ出現） -->
+          <!-- 手動保存アクションエリア -->
           <div id="save-video-action-area" class="mt-1 hidden">
             <button id="save-video-action-btn" class="w-full p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 shadow-md transition-all">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
@@ -337,7 +337,11 @@
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Googleドライブ共有URL または ローカル保存先パス (推奨)</label>
-          <input type="text" id="modal-video-url" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="例: G:\マイドライブ\Manuals\video.webm">
+          <!-- 🚨 修正: 自動補完用のボタンを設置 -->
+          <div class="flex items-center gap-2">
+            <input type="text" id="modal-video-url" class="flex-1 w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="例: G:\マイドライブ\Manuals\video.webm">
+            <button id="auto-fill-drive-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-3 py-2.5 rounded-xl whitespace-nowrap transition-all shadow-sm text-[10px] leading-tight">設定から<br>パスを補完</button>
+          </div>
           <p class="text-[10px] text-slate-400 mt-1">※同期フォルダ（Gドライブ等）のパス、または公開共有リンクを貼るとアタッチ不要で自動再生できます。</p>
         </div>
       </div>
@@ -420,6 +424,11 @@
       <h3 class="font-bold text-slate-900 text-sm">⚙️ システム設定</h3>
       <div class="space-y-3 text-xs">
         <div>
+          <label class="block font-bold text-slate-700 mb-1">現在のログイン用パスコードの変更</label>
+          <input type="text" id="settings-passcode-input" class="w-full border rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono tracking-widest text-center" placeholder="1234">
+          <p class="text-[10px] text-slate-400 mt-1">※パスコードを変更すると、次回アクセス時から新しいパスコードが必要になります。</p>
+        </div>
+        <div class="mt-4 pt-4 border-t border-slate-100">
           <label class="block font-bold text-slate-700 mb-1">録画動画のデフォルト保存先 (Googleドライブ等)</label>
           <div class="flex items-center gap-2">
             <input type="text" id="settings-dir-name" readonly class="flex-1 border bg-slate-50 text-slate-500 rounded-xl p-2 focus:outline-none text-[10px]" placeholder="未設定 (毎回ダイアログ表示)">
@@ -467,7 +476,11 @@
   </div>
 
   <!-- JavaScript -->
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
     // --- 🛡️ 安全なクラス操作・DOM操作ヘルパー (DOM Null安全化設計) ---
     function getEl(id) {
       return document.getElementById(id);
@@ -545,7 +558,6 @@
     }
     window.setProp = setProp;
 
-    // 時間のフォーマット用ヘルパー関数
     function formatTime(seconds) {
       if (seconds === null || seconds === undefined || isNaN(seconds)) return "00:00";
       const mins = Math.floor(seconds / 60);
@@ -554,7 +566,6 @@
     }
     window.formatTime = formatTime;
 
-    // 現在のタイムスタンプ（経過再生秒数）取得用ヘルパー関数
     function getCurrentTimestamp() {
       if (typeof isRecording !== 'undefined' && isRecording) {
         return typeof getElapsedSeconds === 'function' ? getElapsedSeconds() : 0;
@@ -569,13 +580,11 @@
     }
     window.getCurrentTimestamp = getCurrentTimestamp;
 
-    // 経過時間を返す関数
     function getElapsedSeconds() {
       return startTime ? (Date.now() - startTime) / 1000 : 0;
     }
     window.getElapsedSeconds = getElapsedSeconds;
 
-    // タイマー開始用のヘルパー関数
     function startTimer() {
       startTime = Date.now();
       timerInterval = setInterval(() => {
@@ -584,7 +593,6 @@
     }
     window.startTimer = startTimer;
 
-    // タイマー停止用のヘルパー関数
     function stopTimer() {
       if (typeof timerInterval !== 'undefined' && timerInterval) {
         clearInterval(timerInterval);
@@ -595,7 +603,6 @@
     }
     window.stopTimer = stopTimer;
 
-    // 日付フォーマット関数
     function getFormattedDate(pretty = false) {
       const now = new Date();
       const y = now.getFullYear();
@@ -607,7 +614,6 @@
     }
     window.getFormattedDate = getFormattedDate;
 
-    // 🚨 修正: ワークスペースへの戻りバグを解消するタブ切り替え
     function toggleTabs(showWorkspace) {
       if (showWorkspace) {
         addClass('view-library', 'hidden');
@@ -623,7 +629,6 @@
     }
     window.toggleTabs = toggleTabs;
 
-    // showToast関数
     function showToast(msg) {
       const t = document.createElement('div');
       t.className = 'fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-lg z-50 flex items-center gap-1.5 transition-all opacity-0 duration-300';
@@ -671,31 +676,6 @@
         };
       });
     }
-
-    // 共通の動画セットアップ関数
-    function setupVideoPlayer(blob, fileName) {
-      isImportMode = true;
-      activeVideoBlob = blob;
-      const objectUrl = URL.createObjectURL(blob);
-      currentVideoFileInfo.name = fileName;
-      currentVideoFileInfo.url = objectUrl;
-
-      const vp = getEl('video-preview');
-      if (vp) {
-        vp.srcObject = null;
-        vp.src = objectUrl;
-        vp.muted = false;
-        vp.controls = true;
-        vp.ontimeupdate = () => { setText('timer-display', formatTime(vp.currentTime)); };
-      }
-      removeClass('video-preview', 'hidden');
-      addClass('video-placeholder', 'hidden');
-      addClass('video-attach-prompt', 'hidden');
-      
-      setText('timer-label', "PlaybackTime");
-      updateUIState(false);
-    }
-    window.setupVideoPlayer = setupVideoPlayer;
 
     function saveVideoBlob(id, blob) {
       return new Promise((resolve, reject) => {
@@ -806,7 +786,6 @@
     let auth, dbFirestore, appId;
     let currentUser = null;
 
-    // アプリ全体のグローバルなデータ状態
     window.dbState = {
       folders: [
         { id: 'f-all', name: '📂 すべてのマニュアル' },
@@ -830,7 +809,6 @@
       }
     }
 
-    // 🚨 修正：Googleログイン処理の実装
     function handleGoogleLogin() {
       showToast("Googleアカウントで認証中...");
       if (useFirebase && auth && window.firebaseAuth) {
@@ -844,7 +822,6 @@
           window.firebaseAuth.signInAnonymously(auth);
         }
       } else {
-        // GitHub Pages等の外部ホスト時（Firebase設定がない場合のLocal Fallback）
         setTimeout(() => {
           sessionStorage.setItem('manureco_logged_in', 'true');
           bypassLogin();
@@ -934,7 +911,8 @@
     let currentVideoFileInfo = {
       name: '',
       size: 0,
-      url: ''
+      url: '',
+      savedPath: ''
     };
 
     let demoTime = 0;
@@ -1190,7 +1168,6 @@
 
       let loadedFromLocal = false;
 
-      // 1. ローカル同期フォルダからの直接読み込みを試行（究極の連携）
       try {
         if (m.videoName) {
           const dirData = await getDirHandle();
@@ -1211,7 +1188,6 @@
         console.warn("ローカルフォルダからの直接ロードはスキップされました:", err);
       }
 
-      // 2. 失敗した場合はIndexedDBから復元
       if (!loadedFromLocal) {
         try {
           const storedBlob = await getVideoBlob(m.id);
@@ -1223,7 +1199,6 @@
         } catch(e) { console.warn("IndexedDB load error:", e); }
       }
 
-      // 3. 全ての自動読み込みが不可能な場合のフォールバック
       if (!loadedFromLocal) {
         if (m.videoUrl) {
           isImportMode = true;
@@ -1258,7 +1233,7 @@
       }
 
       removeClass('save-library-banner', 'hidden');
-      toggleTabs(true); // ワークスペースへ確実に遷移する
+      toggleTabs(true); 
     };
 
     // Notion連携埋め込み用ポップアップ呼び出し
@@ -1453,16 +1428,46 @@
         });
       }
 
-      // 保管ロジック
-      onEvent('open-save-modal-btn', 'click', () => {
+      // 🚨 保管ロジック (自動補完機能の統合)
+      onEvent('open-save-modal-btn', 'click', async () => {
         const currentWorkspaceTitle = getVal('workspace-manual-title').trim();
         setVal('modal-manual-title', currentWorkspaceTitle || (isImportMode ? "新規インポートマニュアル手順書" : "新規作業操作マニュアル手順書"));
         setHtml('modal-manual-folder', window.dbState.folders.filter(f => f.id !== 'f-all').map(f => `<option value="${f.id}">${f.name}</option>`).join(''));
         setVal('modal-video-name', currentVideoFileInfo.name || "アタッチ動画なし");
-        setVal('modal-video-url', '');
+        
+        let urlValue = '';
+        if (currentVideoFileInfo.savedPath) {
+          urlValue = currentVideoFileInfo.savedPath;
+        } else {
+          try {
+             const dirData = await getDirHandle();
+             if (dirData && dirData.name && currentVideoFileInfo.name) {
+               urlValue = dirData.name + '/' + currentVideoFileInfo.name;
+             }
+          } catch(e){}
+        }
+        setVal('modal-video-url', urlValue);
+        
         removeClass('save-modal', 'hidden');
       });
+      
       onEvent('close-save-modal-btn', 'click', () => addClass('save-modal', 'hidden'));
+
+      // 🚨 「設定からパスを補完」ボタンのアクション
+      onEvent('auto-fill-drive-btn', 'click', async () => {
+         try {
+           const dirData = await getDirHandle();
+           if (dirData && dirData.name) {
+             const vName = getVal('modal-video-name') || currentVideoFileInfo.name;
+             setVal('modal-video-url', dirData.name + '/' + vName);
+             showToast("設定済みのドライブフォルダパスを自動補完しました");
+           } else {
+             alert("システム設定(⚙️)から「デフォルト保存先フォルダ」を先に設定してください。");
+           }
+         } catch(e){
+           alert("設定の読み込みに失敗しました。");
+         }
+      });
 
       onEvent('execute-save-btn', 'click', () => {
         const title = getVal('modal-manual-title').trim();
@@ -1516,10 +1521,12 @@
       // 🚨 録画完了後の手動保存アクション (Transient activation required の回避)
       onEvent('save-video-action-btn', 'click', async () => {
         const defaultFileName = currentVideoFileInfo.name || "Manual_Recording_" + getFormattedDate() + ".webm";
-        const savedName = await saveCapturedVideoDirectly(activeVideoBlob, defaultFileName);
-        if (savedName) {
-          setVal('modal-video-name', savedName);
-          currentVideoFileInfo.name = savedName;
+        const savedPath = await saveCapturedVideoDirectly(activeVideoBlob, defaultFileName);
+        if (savedPath) {
+          // 保存されたパスを記憶
+          currentVideoFileInfo.name = defaultFileName;
+          currentVideoFileInfo.savedPath = savedPath;
+          setVal('modal-video-name', defaultFileName);
           showToast("動画を保存しました。マニュアルを保管してください。");
         }
         addClass('save-video-action-area', 'hidden'); 
@@ -1566,6 +1573,9 @@
                   const writable = await fileHandle.createWritable();
                   await writable.write(blob);
                   await writable.close();
+                  
+                  // 自動保存されたパスを記憶
+                  currentVideoFileInfo.savedPath = dirData.name + "/" + defaultFileName;
                   setVal('modal-video-name', defaultFileName);
                   showToast(`📁 録画完了。指定フォルダ「${dirData.name}」へ自動保存しました！`);
                   isAutoSaved = true;
@@ -1585,6 +1595,7 @@
           mediaRecorder.start(1000);
           isRecording = true; startTimer(); updateUIState(true);
           currentVideoFileInfo.name = "Recording_" + getFormattedDate() + ".webm";
+          currentVideoFileInfo.savedPath = ""; // 録画開始時にパスをクリア
           
           currentTimelineData = []; 
           addTimelineItem(0, "収録の開始", "マニュアル動画のキャプチャ収録を開始しました。", "system");
